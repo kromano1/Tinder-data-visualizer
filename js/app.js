@@ -173,17 +173,29 @@
     const firstDay = days[0]?.[0], lastDay = days[days.length - 1]?.[0];
     const periodLabel = $('rangeSelect').selectedOptions[0]?.textContent || 'All time';
 
+    // Most important stats: a big percentage with the real numbers underneath
+    const spanDays = firstDay ? Math.round((new Date(lastDay) - new Date(firstDay)) / 86400000) + 1 : 0;
+    const matchDays = days.filter(([, v]) => v.matches > 0).length;
+    const msgTotal = totals.sent + totals.received;
+    const questionsN = withMsgs.filter(c => c.messages[0].text.includes('?')).length;
+    const allTime = range === 'all' && exportOv && exportOv.total;
+    // Matches in the file have no date, so for a period compare against the matches made in that period
+    const msgBase = range === 'all' ? convos.length : Math.max(totals.matches, withMsgs.length);
+    const headline = [
+      { label: 'Match rate', value: pct(totals.matches, totals.likes), note: `${n(totals.matches)} matches from ${n(totals.likes)} likes` },
+      { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
+      { label: 'Matches you messaged', value: pct(withMsgs.length, msgBase), note: `${n(withMsgs.length)} of ${n(msgBase)} matches` },
+      allTime
+        ? { label: 'Matches still in your export', value: pct(exportOv.inFile, exportOv.total), note: `${n(exportOv.inFile)} of ${n(exportOv.total)} all-time matches` }
+        : { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received` },
+    ];
     const kpis = [
-      { label: 'Matches', value: n(totals.matches),
-        note: range === 'all' && exportOv ? `${pct(totals.matches, totals.likes)} of likes · ${n(exportOv.inFile)} still in your export` : `${pct(totals.matches, totals.likes)} of your likes`,
-        icon: 'heart', c: 'c2' },
-      { label: 'Swipes', value: n(swipes), note: `${n(Math.round(swipes / Math.max(activeDays, 1)))} per active day`, icon: 'swipe', c: 'c1' },
-      { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} likes, ${n(totals.passes)} passes`, icon: 'percent', c: 'c3' },
-      { label: 'Swipes per match', value: totals.matches ? n(Math.round(swipes / totals.matches)) : '–', note: 'right and left swipes combined', icon: 'target', c: 'c1' },
-      { label: 'App opens', value: n(totals.opens), note: `${n(Math.round(totals.opens / Math.max(activeDays, 1)))} per active day`, icon: 'phone', c: 'c3' },
-      { label: 'Messages sent', value: n(totals.sent), note: `${n(totals.received)} received`, icon: 'chat', c: 'c2' },
-      { label: 'Conversations started', value: n(withMsgs.length), note: `${pct(withMsgs.length, convos.length)} of matches you messaged`, icon: 'spark', c: 'c1' },
-      { label: 'Super Likes', value: n(totals.superlikes), note: totals.superlikes ? `${n(Math.round(totals.likes / totals.superlikes))} likes per Super Like` : 'none used', icon: 'star', c: 'c3' },
+      allTime
+        ? { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received`, icon: 'chat', c: 'c2' }
+        : { label: 'Openers with a question', value: pct(questionsN, withMsgs.length), note: `${n(questionsN)} of ${n(withMsgs.length)} first messages`, icon: 'quote', c: 'c2' },
+      { label: 'Active days', value: pct(activeDays, spanDays), note: `${n(activeDays)} of ${n(spanDays)} days · ${n(totals.opens)} app opens`, icon: 'calendar', c: 'c1' },
+      { label: 'Days with a match', value: pct(matchDays, activeDays), note: `${n(matchDays)} of ${n(activeDays)} active days`, icon: 'heart', c: 'c3' },
+      { label: 'Super Likes', value: pct(totals.superlikes, totals.likes), note: `${n(totals.superlikes)} of your ${n(totals.likes)} likes`, icon: 'star', c: 'c1' },
     ];
 
     // Weekday averages over days with swipes
@@ -256,7 +268,7 @@
     if (wdTop >= 0) story.push({ icon: 'calendar', c: 'c3', big: FULL_DAYS[wdTop] + 's', text: `are your busiest swiping days, with ${pct(wdAvg[wdTop], wdAvg.reduce((a, b) => a + b, 0))} of a typical week's swipes` });
     const bestM = peakIdx(mMatches);
     if (bestM >= 0) story.push({ icon: 'trophy', c: 'c2', big: fullM(bestM), text: `was your best month: ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total` });
-    if (convos.length) story.push({ icon: 'chat', c: 'c1', big: pct(withMsgs.length, convos.length), text: `of your matches got a message from you. ${n(convos.length - withMsgs.length)} never heard from you.` });
+    if (msgBase) story.push({ icon: 'chat', c: 'c1', big: pct(withMsgs.length, msgBase), text: `of your matches got a message from you. ${n(msgBase - withMsgs.length)} never heard from you.` });
     const hTop = peakIdx(hours);
     if (hTop >= 0) story.push({ icon: 'clock', c: 'c3', big: hourName(hTop), text: `is your favorite time to text: ${pct(hours[hTop], sentMsgs.length)} of your messages go out in that hour` });
     const busiest = days.reduce((b, d) => (d[1].likes + d[1].passes) > (b ? b[1].likes + b[1].passes : 0) ? d : b, null);
@@ -286,7 +298,7 @@
       periodLabel,
       sub: firstDay ? `${fmtDate(firstDay)} – ${fmtDate(lastDay)} · ${activeDays.toLocaleString()} active days` : 'No activity in this period',
       title: data.isDemo ? 'Sample dashboard' : (range === 'all' ? 'All of your swiping' : periodLabel),
-      hero: { value: n(totals.matches), label: totals.matches === 1 ? 'match' : 'matches' },
+      headline,
       profile: profileChips(),
       kpis, charts, exportOv,
       openers: { words: topWords, note: openersNote },
@@ -301,11 +313,11 @@
     $('dashTitle').textContent = view.title;
     $('dashSub').textContent = view.sub;
 
-    const big = $('heroBig');
-    big.replaceChildren();
-    const bn = document.createElement('div'); bn.className = 'big-num'; bn.textContent = view.hero.value;
-    const bl = document.createElement('div'); bl.className = 'big-label'; bl.textContent = view.hero.label + ' · ' + view.periodLabel.toLowerCase();
-    big.append(bn, bl);
+    $('heroStats').replaceChildren(...view.headline.map(h => {
+      const d = document.createElement('div'); d.className = 'hs';
+      d.append(textEl('div', h.label, 'hs-label'), textEl('div', h.value, 'hs-big'), textEl('div', h.note, 'hs-note'));
+      return d;
+    }));
 
     $('profile').replaceChildren(...view.profile.map(([k, v]) => {
       const s = document.createElement('span'); s.className = 'chip';

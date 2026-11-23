@@ -15,7 +15,7 @@
   <meta name="theme-color" content="#7b5cf0">
   <link rel="canonical" href="https://tinder.romanoindustries.com/">
   <link rel="preload" href="fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/styles.css?v=8">
+  <link rel="stylesheet" href="css/styles.css?v=9">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237b5cf0'/><stop offset='.6' stop-color='%23e3497a'/><stop offset='1' stop-color='%23f0803c'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><path d='M8 22l5-6 4 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 </head>
 <body>
@@ -118,7 +118,7 @@
             <p id="dashSub"></p>
             <div id="profile" class="profile-strip"></div>
           </div>
-          <div class="dash-hero-big" id="heroBig"></div>
+          <div class="hero-stats" id="heroStats"></div>
         </div>
 
         <div class="toolbar">
@@ -126,6 +126,9 @@
             <label for="rangeSelect" class="filter-label">Period</label>
             <select id="rangeSelect"></select>
           </div>
+          <nav class="jump" aria-label="Jump to a section">
+            <a href="#sec-story">Story</a><a href="#sec-overview">Overview</a><a href="#sec-swiping">Swiping</a><a href="#sec-matching">Matching</a><a href="#sec-messaging">Messaging</a><a href="#sec-conversations">Conversations</a><a href="#sec-data">Your data</a>
+          </nav>
           <button id="exportBtn" class="btn btn-primary">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Export PDF or image
@@ -134,7 +137,7 @@
 
         <div id="storySection">
           <div class="story-head">
-            <h2 class="section-title">Your story</h2>
+            <h2 class="section-title" id="sec-story">Your story</h2>
             <button id="playStory" class="btn btn-primary btn-sm" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
               Play your story
@@ -143,10 +146,10 @@
           <div id="story" class="story-grid"></div>
         </div>
 
-        <h2 class="section-title">Overview</h2>
+        <h2 class="section-title" id="sec-overview">Overview</h2>
         <div id="kpis" class="kpi-grid"></div>
 
-        <h2 class="section-title">About this export</h2>
+        <h2 class="section-title" id="sec-export">About this export</h2>
         <div class="card export-ov">
           <p class="muted ov-lede">A summary of the whole data file. This section always covers everything in the file, whatever period is selected above.</p>
           <div class="ov-grid" id="ovGrid"></div>
@@ -159,7 +162,7 @@
           <div class="ov-sections"><span class="muted">Sections in this file</span><div id="ovSections" class="kv-chips"></div></div>
         </div>
 
-        <h2 class="section-title">Swiping</h2>
+        <h2 class="section-title" id="sec-swiping">Swiping</h2>
         <div class="grid-2">
           <figure class="card chart-card wide">
             <figcaption><h3>Likes and passes per month</h3></figcaption>
@@ -180,7 +183,7 @@
           </figure>
         </div>
 
-        <h2 class="section-title">Matching</h2>
+        <h2 class="section-title" id="sec-matching">Matching</h2>
         <div class="grid-2">
           <figure class="card chart-card">
             <figcaption><h3>Matches per month</h3></figcaption>
@@ -192,7 +195,7 @@
           </figure>
         </div>
 
-        <h2 class="section-title">Messaging</h2>
+        <h2 class="section-title" id="sec-messaging">Messaging</h2>
         <div class="grid-2">
           <figure class="card chart-card wide">
             <figcaption><h3>Messages sent and received per month</h3></figcaption>
@@ -232,7 +235,7 @@
           <div class="grid-2" id="moreCharts"></div>
         </div>
 
-        <h2 class="section-title">Conversations</h2>
+        <h2 class="section-title" id="sec-conversations">Conversations</h2>
         <div class="card convo-card">
           <div class="convo-head">
             <div>
@@ -245,7 +248,7 @@
           <button class="btn btn-soft btn-sm more-btn" id="convoMore" hidden>Show more conversations</button>
         </div>
 
-        <h2 class="section-title">Everything else in your export</h2>
+        <h2 class="section-title" id="sec-data">Everything else in your export</h2>
         <p class="muted section-lede">Every other section of your data file, shown exactly as Tinder provided it.</p>
         <div id="allSections" class="all-sections"></div>
 
@@ -319,14 +322,14 @@
     </div>
   </footer>
 
-  <script src="js/vendor/chart.umd.js?v=8"></script>
-  <script src="js/vendor/jszip.min.js?v=8"></script>
-  <script src="js/vendor/jspdf.umd.min.js?v=8"></script>
-  <script src="js/parse.js?v=8"></script>
-  <script src="js/demo.js?v=8"></script>
-  <script src="js/charts.js?v=8"></script>
-  <script src="js/export.js?v=8"></script>
-  <script src="js/story.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/vendor/chart.umd.js?v=9"></script>
+  <script src="js/vendor/jszip.min.js?v=9"></script>
+  <script src="js/vendor/jspdf.umd.min.js?v=9"></script>
+  <script src="js/parse.js?v=9"></script>
+  <script src="js/demo.js?v=9"></script>
+  <script src="js/charts.js?v=9"></script>
+  <script src="js/export.js?v=9"></script>
+  <script src="js/story.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

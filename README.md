@@ -14,6 +14,7 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - Super Likes per month, plus a chart for any other activity series Tinder includes in `Usage`
 - An "About this export" summary: date range covered, all-time matches vs matches still in the file
   (Tinder drops unmatched/deleted matches from the Messages section), conversations, messages, photos, purchases
+- Headline stats as big percentages with the real numbers underneath, plus jump links to every section
 - "Your story": plain-English highlight cards, a full-screen story mode (tap, swipe or arrow keys),
   and a 1080x1350 share image for each card
 - A light / dark / automatic theme switch

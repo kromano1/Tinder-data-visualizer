@@ -162,7 +162,7 @@
     const chipFont = F(500, 13);
     // pre-measure chip rows
     const meas = document.createElement('canvas').getContext('2d');
-    const chipLayout = []; let cx = 0, rows = chips.length ? 1 : 0; const maxW = CW - 72 - 260;
+    const chipLayout = []; let cx = 0, rows = chips.length ? 1 : 0; const maxW = CW - 72;
     for (const [k, v] of chips) {
       meas.font = chipFont;
       const w = meas.measureText(`${k}: ${v}`).width + 26;
@@ -170,7 +170,8 @@
       chipLayout.push({ s: `${k}: ${v}`, x: cx, row: rows - 1, w });
       cx += w + 8;
     }
-    const h = 200 + (rows ? rows * 38 + 6 : 0);
+    const statsY = 176 + (rows ? rows * 38 + 6 : 0);
+    const h = statsY + 132;
     return {
       h,
       draw(ctx) {
@@ -190,11 +191,19 @@
         ctx.stroke(new Path2D('M5 17l4-5 3 3 6-7')); ctx.restore();
         text(ctx, 'SWIPE STATS', x + 74, y + 52, F(700, 13), 'rgba(255,255,255,0.9)');
 
-        text(ctx, fit(ctx, view.title, F(800, 40), w - 360), x + 36, y + 118, F(800, 40), '#fff');
-        text(ctx, fit(ctx, view.sub, F(500, 16), w - 360), x + 36, y + 150, F(500, 16), 'rgba(255,255,255,0.92)');
+        text(ctx, fit(ctx, view.title, F(800, 40), w - 72), x + 36, y + 118, F(800, 40), '#fff');
+        text(ctx, fit(ctx, view.sub, F(500, 16), w - 72), x + 36, y + 150, F(500, 16), 'rgba(255,255,255,0.92)');
 
-        text(ctx, view.hero.value, x + w - 36, y + 128, F(800, 64), '#fff', 'right');
-        text(ctx, `${view.hero.label} · ${view.periodLabel.toLowerCase()}`, x + w - 36, y + 156, F(500, 15), 'rgba(255,255,255,0.9)', 'right');
+        // headline stats: label, big percentage, numbers underneath
+        const hs = view.headline, gap = 12, bw = (w - 72 - gap * (hs.length - 1)) / hs.length;
+        hs.forEach((s, i) => {
+          const bx = x + 36 + i * (bw + gap), by = y + statsY;
+          rr(ctx, bx, by, bw, 108, 16); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1; ctx.stroke();
+          text(ctx, fit(ctx, s.label, F(650, 13), bw - 32), bx + 16, by + 26, F(650, 13), 'rgba(255,255,255,0.92)');
+          text(ctx, fit(ctx, s.value, F(800, 42), bw - 32), bx + 16, by + 70, F(800, 42), '#fff');
+          text(ctx, fit(ctx, s.note, F(500, 12.5), bw - 32), bx + 16, by + 94, F(500, 12.5), 'rgba(255,255,255,0.92)');
+        });
 
         for (const c of chipLayout) {
           const cy = y + 184 + c.row * 38;
@@ -238,7 +247,7 @@
           for (const p of iconPaths(SwipeApp.ICONS[k.icon] || '')) ctx.stroke(p);
           ctx.restore();
           text(ctx, fit(ctx, k.label, F(600, 13.5), tw - 76), x + 58, y + 38, F(600, 13.5), C.text2);
-          text(ctx, k.value, x + 18, y + 86, F(780, 30), C.text);
+          text(ctx, k.value, x + 18, y + 88, F(800, 34), C.text);
           text(ctx, fit(ctx, k.note, F(400, 12), tw - 36), x + 18, y + 106, F(400, 12), C.text3);
         });
       },
