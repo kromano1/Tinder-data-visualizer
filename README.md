@@ -30,6 +30,24 @@ To try it locally, run `python3 -m http.server` in this folder and open http://l
 Chart.js 4.4.1 and JSZip 3.10.1 are bundled in `js/vendor/` (MIT licensed; see the license files there),
 so the site doesn't depend on any external CDN.
 
+## Privacy and security
+
+- The export is parsed in the browser. There is no backend, database, cookie, analytics or third-party script.
+- A Content-Security-Policy with `connect-src 'none'` (in both `.htaccess` and a `<meta>` tag) stops the page
+  from making any network request, so uploaded data cannot be sent anywhere even if a bug or a compromised
+  script tried to.
+- All scripts are served from the site itself (`script-src 'self'`), with no inline scripts or styles.
+- `.htaccess` also forces HTTPS, sends HSTS, `nosniff`, `no-referrer` and anti-framing headers, disables
+  directory listings, and blocks hidden or non-site files.
+- Uploads are capped at 500 MB, and the zip entry's size is checked before it is unpacked.
+
+## Deploying to Hostinger
+
+1. In hPanel open **File Manager** for the site (for a subdomain such as `tinder.example.com`, use that subdomain's folder).
+2. Upload `index.html`, `.htaccess`, `css/` and `js/` (or a zip of them and use **Extract**). Remove any default `index.php`/`default.php`.
+3. Make sure an SSL certificate is active for the domain (hPanel → Security → SSL), since `.htaccess` redirects to HTTPS.
+4. File Manager hides dotfiles by default; enable "show hidden files" to confirm `.htaccess` is there.
+
 ## Getting your Tinder data
 
 Request it at account.gotinder.com/data. Tinder emails a download link, usually within a few days.

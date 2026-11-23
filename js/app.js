@@ -223,9 +223,22 @@
     if (!top.length) { el.innerHTML = '<p class="empty-note">No messages in this period.</p>'; return; }
     const max = top[0][1];
     const avgLen = Math.round(withMsgs.reduce((s, c) => s + c.messages[0].text.length, 0) / withMsgs.length);
-    el.innerHTML = top.map(([w, c]) =>
-      `<span class="word" style="font-size:${(0.8 + 0.7 * c / max).toFixed(2)}rem">${esc(w)}<small>${c}</small></span>`).join('') +
-      `<p class="empty-note" style="width:100%">${pct(questions, withMsgs.length)} of your openers asked a question · average opener is ${avgLen} characters</p>`;
+    // Built with DOM APIs (no inline style attributes) so the strict Content-Security-Policy holds
+    el.replaceChildren();
+    for (const [w, c] of top) {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.style.fontSize = (0.8 + 0.7 * c / max).toFixed(2) + 'rem';
+      span.textContent = w;
+      const small = document.createElement('small');
+      small.textContent = c;
+      span.append(small);
+      el.append(span);
+    }
+    const note = document.createElement('p');
+    note.className = 'empty-note full';
+    note.textContent = `${pct(questions, withMsgs.length)} of your openers asked a question · average opener is ${avgLen} characters`;
+    el.append(note);
   }
 
   function renderTopDays(days) {

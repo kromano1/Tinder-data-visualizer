@@ -2,7 +2,10 @@
 (function (global) {
   'use strict';
 
+  const MAX_BYTES = 500 * 1024 * 1024; // guard against huge or malicious files freezing the tab
+
   async function readFile(file) {
+    if (file.size > MAX_BYTES) throw new Error('That file is too large (over 500 MB). Choose the Tinder export zip or data.json.');
     const name = (file.name || '').toLowerCase();
     let text;
     if (name.endsWith('.zip') || file.type === 'application/zip') {
@@ -11,6 +14,9 @@
       const entry = Object.values(zip.files).find(f => !f.dir && /(^|\/)data\.json$/i.test(f.name))
         || Object.values(zip.files).find(f => !f.dir && /\.json$/i.test(f.name));
       if (!entry) throw new Error('No data.json was found inside that zip file.');
+      // _data.uncompressedSize is JSZip's record of the entry size; check it before inflating (zip-bomb guard)
+      const size = entry._data && entry._data.uncompressedSize;
+      if (size > MAX_BYTES) throw new Error('The data.json inside that zip is too large to open.');
       text = await entry.async('string');
     } else {
       text = await file.text();

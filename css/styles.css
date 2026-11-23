@@ -160,6 +160,10 @@ select {
 .word { padding: 4px 10px; border-radius: 999px; background: var(--grid); color: var(--text); }
 .word small { color: var(--text-3); margin-left: 4px; font-size: .75em; }
 .empty-note { color: var(--text-3); font-size: .875rem; margin-top: 14px; }
+.empty-note.full { width: 100%; }
+.privacy { margin-top: 16px; }
+.privacy ul { padding-left: 20px; margin: 10px 0 0; color: var(--text-2); }
+.privacy li { margin: 6px 0; }
 
 .data-table { width: 100%; border-collapse: collapse; font-size: .875rem; margin-top: 10px; font-variant-numeric: tabular-nums; }
 .data-table th, .data-table td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }

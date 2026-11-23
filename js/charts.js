@@ -92,7 +92,13 @@
     if (!el) return;
     const t = theme();
     const colors = [t.s1, t.s2, t.s3];
-    el.innerHTML = items.map((label, i) => `<span><i style="background:${colors[i]}"></i>${label}</span>`).join('');
+    el.replaceChildren(...items.map((label, i) => {
+      const span = document.createElement('span');
+      const swatch = document.createElement('i');
+      swatch.style.background = colors[i];
+      span.append(swatch, label);
+      return span;
+    }));
   }
 
   function destroyAll() {

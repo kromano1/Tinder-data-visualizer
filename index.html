@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Privacy: connect-src 'none' means this page cannot send data anywhere, not even back to this server. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
   <title>Swipe Stats</title>
   <meta name="description" content="Visualize your Tinder data export privately in your browser. Your file never leaves your device.">
   <link rel="stylesheet" href="css/styles.css">
@@ -16,7 +19,7 @@
         Swipe Stats
       </a>
       <nav class="header-actions">
-        <button id="resetBtn" class="btn btn-ghost" hidden>Load another file</button>
+        <button id="resetBtn" class="btn btn-ghost" hidden>Clear data &amp; load another file</button>
       </nav>
     </div>
   </header>
@@ -49,6 +52,16 @@
           <li>Request your data. Tinder emails you a download link, usually within a few days.</li>
           <li>Download the <code>.zip</code> file and drop it above. You can also drop just the <code>data.json</code> file inside it.</li>
         </ol>
+      </div>
+
+      <div class="howto privacy">
+        <h2>Your privacy</h2>
+        <ul>
+          <li>Your file is opened and analyzed <strong>entirely inside your browser</strong>. It is never uploaded to this website or anyone else.</li>
+          <li>The site is locked down so the page cannot make network requests at all, so it has no way to send your data anywhere.</li>
+          <li>No accounts, cookies, analytics, ads or trackers. Nothing is saved: close or refresh the tab and your data is gone.</li>
+          <li>It even works offline: load the page, turn off your internet, then open your file.</li>
+        </ul>
         <p class="fine">Swipe Stats is an independent project and is not affiliated with Tinder or Match Group.</p>
       </div>
     </section>
