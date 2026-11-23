@@ -497,3 +497,32 @@ select {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Small phones ---------- */
+@media (max-width: 700px) {
+  /* the toolbar wraps to several rows on phones, so don't pin it over the content */
+  .toolbar { position: static; }
+  .section-title { scroll-margin-top: 76px; }
+  .opt-head { flex-wrap: wrap; gap: 4px 12px; }
+}
+@media (max-width: 420px) {
+  .wrap { padding: 0 12px; }
+  .header-inner { height: 56px; }
+  .brand { font-size: .98rem; gap: 8px; }
+  .dash-hero { padding: 22px 16px; }
+  .hero-stats { gap: 8px; }
+  .hs { padding: 12px 12px 14px; border-radius: 14px; }
+  .hs-label { font-size: .76rem; }
+  .hs-big { font-size: 2.05rem; }
+  .hs-note { font-size: .8rem; }
+  .kpi-grid { gap: 10px; }
+  .kpi-top { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .kpi-value { font-size: 1.8rem; margin-top: 8px; }
+  .ov-grid { gap: 8px; }
+  .ov-stat { padding: 10px 11px; }
+  .ov-value { font-size: 1.2rem; }
+  .ov-stat.small .ov-value { font-size: .88rem; }
+  .story-card { padding: 18px; }
+  .chart-box { height: 220px; }
+  .wide .chart-box { height: 240px; }
+}

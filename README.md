@@ -39,7 +39,7 @@ static host:
 
 To try it locally, run `python3 -m http.server` in this folder and open http://localhost:8000.
 
-Chart.js 4.4.1, JSZip 3.10.1 and jsPDF 2.5.1 are bundled in `js/vendor/`, and the Inter font in `fonts/`
+Chart.js 4.4.1, JSZip 3.10.1 and jsPDF 4.2.1 are bundled in `js/vendor/`, and the Inter font in `fonts/`
 (see the license files there), so the site doesn't depend on any external CDN.
 
 ## Privacy and security
