@@ -10,6 +10,10 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - Matches per month and match rate per month
 - Messages sent and received per month, the hours you send messages, conversation lengths
 - Your most common opening words, and your busiest swiping days
+- Percentage labels on every bar and point (rates, or each point's share of the total), also in tooltips and exports
+- Super Likes per month, plus a chart for any other activity series Tinder includes in `Usage`
+- A searchable browser of every conversation and message in the export
+- Every other section of the file (profile, Spotify, purchases, photos, campaigns, …) shown as-is
 - A period filter (all time, last 12 months, or a single year) and a monthly data table
 - **Export** as a multi-page PDF report or a single JPEG image, choosing exactly which sections to include
   (profile details are off by default). Exports are drawn on a canvas in the browser and saved directly to downloads.

@@ -35,7 +35,8 @@
         { key: 'topDays', label: 'Most active days' },
       ] },
       { group: 'App usage', items: byGroup('App usage') },
-    ];
+      { group: 'More activity', items: byGroup('More activity') },
+    ].filter(g => g.items.length);
   }
 
   function loadSaved() {
@@ -274,13 +275,14 @@
       const meas = document.createElement('canvas').getContext('2d');
       const max = openers.words.length ? openers.words[0][1] : 1;
       const out = []; let cx = 0, cy = 0, rowH = 0;
-      for (const [word, c] of openers.words) {
+      for (const [word, c, p] of openers.words) {
         const fs = Math.round(13 + 9 * c / max);
+        const label = `${c} · ${p}`;
         meas.font = F(550, fs); const ww = meas.measureText(word).width;
-        meas.font = F(500, 11); const cwid = meas.measureText(String(c)).width;
+        meas.font = F(500, 11); const cwid = meas.measureText(label).width;
         const pw = ww + cwid + 30, ph = fs + 16;
         if (cx + pw > w - pad * 2 && cx > 0) { cx = 0; cy += rowH + 8; rowH = 0; }
-        out.push({ word, c, fs, x: cx, y: cy, w: pw, h: ph, ww });
+        out.push({ word, c: label, fs, x: cx, y: cy, w: pw, h: ph, ww });
         cx += pw + 8; rowH = Math.max(rowH, ph);
       }
       return { pills: out, height: out.length ? cy + rowH : 20 };
@@ -318,9 +320,10 @@
         text(ctx, 'Your most active days', x + 22, y + 36, F(650, 17), C.text);
         text(ctx, 'Days with the most swipes', x + 22, y + 58, F(400, 13), C.text2);
         const top = y + 92;
-        const c1 = x + 22, c3 = x + w - 22, c2 = c3 - 110;
+        const c1 = x + 22, c3 = x + w - 22, c2 = c3 - 140, cs = c3 - 76;
         text(ctx, 'DATE', c1, top, F(600, 11.5), C.text3);
         text(ctx, 'SWIPES', c2, top, F(600, 11.5), C.text3, 'right');
+        text(ctx, 'SHARE', cs, top, F(600, 11.5), C.text3, 'right');
         text(ctx, 'MATCHES', c3, top, F(600, 11.5), C.text3, 'right');
         if (!rows.length) text(ctx, 'No swipes in this period.', c1, top + 32, F(400, 13.5), C.text3);
         rows.forEach((r, i) => {
@@ -328,6 +331,7 @@
           ctx.fillStyle = C.grid; ctx.fillRect(c1, ry, c3 - c1, 1);
           text(ctx, r[0], c1, ry + 24, F(500, 14), C.text);
           text(ctx, r[1], c2, ry + 24, F(600, 14), C.text, 'right');
+          text(ctx, r[3], cs, ry + 24, F(500, 14), C.text2, 'right');
           text(ctx, r[2], c3, ry + 24, F(500, 14), C.text2, 'right');
         });
       },
@@ -376,7 +380,7 @@
   function buildRows(view, sel, scale) {
     const rows = [headerRow(view, sel.profile)];
     if (sel.kpis) rows.push(sectionRow('Overview'), kpiRow(view.kpis));
-    const groups = ['Swiping', 'Matching', 'Messaging', 'Highlights', 'App usage'];
+    const groups = ['Swiping', 'Matching', 'Messaging', 'Highlights', 'App usage', 'More activity'];
     for (const g of groups) {
       const items = [];
       for (const m of SwipeApp.CHARTS.filter(c => c.group === g)) {

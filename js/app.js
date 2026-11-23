@@ -9,17 +9,21 @@
     'u ur r there here they them he she his her if as by from up out about any some too very really').split(' '));
 
   // Every chart on the dashboard; the export dialog uses the same list.
-  const CHARTS = [
-    { key: 'swipes', id: 'chSwipes', group: 'Swiping', title: 'Likes and passes per month', sub: '', wide: true },
+  // Labels on every bar/point show a percentage: the rate itself, or that point's share of the total.
+  const BASE_CHARTS = [
+    { key: 'swipes', id: 'chSwipes', group: 'Swiping', title: 'Likes and passes per month', sub: 'Labels show the share of each month\'s swipes that were likes', wide: true },
     { key: 'likeRate', id: 'chLikeRate', group: 'Swiping', title: 'Like rate per month', sub: 'Share of swipes that were right swipes' },
-    { key: 'weekday', id: 'chWeekday', group: 'Swiping', title: 'Average swipes by weekday', sub: 'On days you swiped' },
-    { key: 'matches', id: 'chMatches', group: 'Matching', title: 'Matches per month', sub: '' },
+    { key: 'weekday', id: 'chWeekday', group: 'Swiping', title: 'Average swipes by weekday', sub: 'On days you swiped · labels show share of the week' },
+    { key: 'super', id: 'chSuper', group: 'Swiping', title: 'Super Likes per month', sub: 'Labels show each month\'s share of your Super Likes', wide: true },
+    { key: 'matches', id: 'chMatches', group: 'Matching', title: 'Matches per month', sub: 'Labels show each month\'s share of your matches' },
     { key: 'matchRate', id: 'chMatchRate', group: 'Matching', title: 'Match rate per month', sub: 'Matches divided by likes sent' },
-    { key: 'messages', id: 'chMessages', group: 'Messaging', title: 'Messages sent and received per month', sub: '', wide: true },
-    { key: 'hour', id: 'chHour', group: 'Messaging', title: 'When you send messages', sub: 'By hour of day, in your local time' },
-    { key: 'convo', id: 'chConvo', group: 'Messaging', title: 'Conversation length', sub: 'Messages you sent per match' },
-    { key: 'opens', id: 'chOpens', group: 'App usage', title: 'App opens per month', sub: '', wide: true },
+    { key: 'messages', id: 'chMessages', group: 'Messaging', title: 'Messages sent and received per month', sub: 'Labels show each month\'s share of messages sent or received', wide: true },
+    { key: 'hour', id: 'chHour', group: 'Messaging', title: 'When you send messages', sub: 'By hour, your local time · share of messages' },
+    { key: 'convo', id: 'chConvo', group: 'Messaging', title: 'Conversation length', sub: 'Messages you sent per match · share of matches' },
+    { key: 'opens', id: 'chOpens', group: 'App usage', title: 'App opens per month', sub: 'Labels show each month\'s share of app opens', wide: true },
   ];
+  let CHARTS = BASE_CHARTS.slice();
+  const CONVO_PAGE = 50;
 
   const ICONS = {
     heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/>',
@@ -98,6 +102,9 @@
     $('resetBtn').hidden = false;
     $('exportBtnTop').hidden = false;
     $('dashEyebrow').textContent = isDemo ? 'Sample data' : 'Your Tinder, in numbers';
+    buildExtraCharts();
+    renderConversations();
+    renderAllSections();
     render();
     window.scrollTo(0, 0);
   }
@@ -134,6 +141,13 @@
       }
     }
     for (const [d, v] of days) { const b = monthly.get(d.slice(0, 7)); for (const k in b) b[k] += v[k]; }
+    // Extra usage series, bucketed onto the same months
+    const extraMonthly = {};
+    for (const [k, series] of Object.entries(data.extras || {})) {
+      const arr = new Map([...monthly.keys()].map(m => [m, 0]));
+      for (const [d, val] of Object.entries(series)) if (inRange(d) && arr.has(d.slice(0, 7))) arr.set(d.slice(0, 7), arr.get(d.slice(0, 7)) + val);
+      extraMonthly[k] = [...arr.values()];
+    }
     const mKeys = [...monthly.keys()];
     const mLabels = mKeys.map(k => MONTHS[+k.slice(5) - 1] + ' ' + k.slice(2, 4));
     const mVals = [...monthly.values()];
@@ -169,23 +183,34 @@
     for (const m of sentMsgs) hours[m.date.getHours()]++;
     const buckets = [['0', 0, 0], ['1', 1, 1], ['2–5', 2, 5], ['6–10', 6, 10], ['11–25', 11, 25], ['26–50', 26, 50], ['51+', 51, Infinity]];
 
+    const share = arr => { const t = arr.reduce((a, b) => a + (b || 0), 0); return arr.map(v => t ? (v || 0) / t : null); };
+    const of = (a, b) => b ? a / b : null;
+    const likeRate = mVals.map(v => of(v.likes, v.likes + v.passes));
+    const matchRate = mVals.map(v => of(v.matches, v.likes));
+    const wdAvg = wd.map(x => x.c ? Math.round(x.s / x.c) : 0);
+    const convoCounts = buckets.map(([, lo, hi]) => convos.filter(c => c.messages.length >= lo && c.messages.length <= hi).length);
+
     const charts = {
-      swipes: { type: 'bar', labels: mLabels, opts: { stacked: true }, datasets: [
-        { label: 'Likes', data: mVals.map(v => v.likes) }, { label: 'Passes', data: mVals.map(v => v.passes) }] },
-      likeRate: { type: 'line', labels: mLabels, opts: { percent: true }, datasets: [
-        { label: 'Like rate', data: mVals.map(v => (v.likes + v.passes) ? v.likes / (v.likes + v.passes) : null) }] },
-      weekday: { type: 'bar', labels: WEEKDAYS, datasets: [{ label: 'Avg swipes', data: wd.map(x => x.c ? Math.round(x.s / x.c) : 0) }] },
-      matches: { type: 'bar', labels: mLabels, datasets: [{ label: 'Matches', data: mVals.map(v => v.matches) }] },
-      matchRate: { type: 'line', labels: mLabels, opts: { percent: true }, datasets: [
-        { label: 'Match rate', data: mVals.map(v => v.likes ? v.matches / v.likes : null) }] },
-      messages: { type: 'line', labels: mLabels, datasets: [
-        { label: 'Sent', data: mVals.map(v => v.sent) }, { label: 'Received', data: mVals.map(v => v.received) }] },
-      hour: { type: 'bar', labels: hours.map((_, h) => h === 0 ? '12a' : h < 12 ? h + 'a' : h === 12 ? '12p' : (h - 12) + 'p'),
-        datasets: [{ label: 'Messages', data: hours }] },
-      convo: { type: 'bar', labels: buckets.map(b => b[0]), opts: { xTitle: 'messages sent' },
-        datasets: [{ label: 'Matches', data: buckets.map(([, lo, hi]) => convos.filter(c => c.messages.length >= lo && c.messages.length <= hi).length) }] },
-      opens: { type: 'bar', labels: mLabels, datasets: [{ label: 'App opens', data: mVals.map(v => v.opens) }] },
+      swipes: { type: 'bar', labels: mLabels, opts: { stacked: true }, pctNote: 'of month',
+        datasets: [{ label: 'Likes', data: mVals.map(v => v.likes) }, { label: 'Passes', data: mVals.map(v => v.passes) }],
+        pct: [likeRate, mVals.map(v => of(v.passes, v.likes + v.passes))] },
+      likeRate: { type: 'line', labels: mLabels, opts: { percent: true }, datasets: [{ label: 'Like rate', data: likeRate }], pct: [likeRate] },
+      weekday: { type: 'bar', labels: WEEKDAYS, pctNote: 'of week', datasets: [{ label: 'Avg swipes', data: wdAvg }], pct: [share(wdAvg)] },
+      super: { type: 'bar', labels: mLabels, pctNote: 'of total', datasets: [{ label: 'Super Likes', data: mVals.map(v => v.superlikes) }], pct: [share(mVals.map(v => v.superlikes))] },
+      matches: { type: 'bar', labels: mLabels, pctNote: 'of total', datasets: [{ label: 'Matches', data: mVals.map(v => v.matches) }], pct: [share(mVals.map(v => v.matches))] },
+      matchRate: { type: 'line', labels: mLabels, opts: { percent: true }, datasets: [{ label: 'Match rate', data: matchRate }], pct: [matchRate] },
+      messages: { type: 'line', labels: mLabels, pctNote: 'of total',
+        datasets: [{ label: 'Sent', data: mVals.map(v => v.sent) }, { label: 'Received', data: mVals.map(v => v.received) }],
+        pct: [share(mVals.map(v => v.sent)), share(mVals.map(v => v.received))] },
+      hour: { type: 'bar', labels: hours.map((_, h) => h === 0 ? '12a' : h < 12 ? h + 'a' : h === 12 ? '12p' : (h - 12) + 'p'), pctNote: 'of messages',
+        datasets: [{ label: 'Messages', data: hours }], pct: [share(hours)] },
+      convo: { type: 'bar', labels: buckets.map(b => b[0]), opts: { xTitle: 'messages sent' }, pctNote: 'of matches',
+        datasets: [{ label: 'Matches', data: convoCounts }], pct: [share(convoCounts)] },
+      opens: { type: 'bar', labels: mLabels, pctNote: 'of total', datasets: [{ label: 'App opens', data: mVals.map(v => v.opens) }], pct: [share(mVals.map(v => v.opens))] },
     };
+    for (const [k, arr] of Object.entries(extraMonthly)) {
+      charts['x:' + k] = { type: 'bar', labels: mLabels, pctNote: 'of total', datasets: [{ label: pretty(k), data: arr }], pct: [share(arr)] };
+    }
 
     // Opening words
     const counts = new Map();
@@ -196,12 +221,13 @@
       const words = new Set(t.toLowerCase().replace(/[^\p{L}\p{N}'\s]/gu, ' ').split(/\s+/).filter(w => w.length > 1 && !STOPWORDS.has(w)));
       for (const w of words) counts.set(w, (counts.get(w) || 0) + 1);
     }
-    const topWords = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 24);
+    const topWords = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 24)
+      .map(([w, c]) => [w, c, Charts.fmtPct(c / withMsgs.length)]);
     const avgLen = withMsgs.length ? Math.round(withMsgs.reduce((s, c) => s + c.messages[0].text.length, 0) / withMsgs.length) : 0;
     const openersNote = withMsgs.length ? `${pct(questions, withMsgs.length)} of your openers asked a question · average opener is ${avgLen} characters` : '';
 
     const topDays = days.map(([d, v]) => [d, v.likes + v.passes, v.matches]).filter(x => x[1])
-      .sort((a, b) => b[1] - a[1]).slice(0, 6).map(([d, s, m]) => [fmtDate(d, true), n(s), n(m)]);
+      .sort((a, b) => b[1] - a[1]).slice(0, 6).map(([d, s, m]) => [fmtDate(d, true), n(s), n(m), pct(s, swipes)]);
 
     return {
       isDemo: data.isDemo,
@@ -213,7 +239,7 @@
       kpis, charts,
       openers: { words: topWords, note: openersNote },
       topDays,
-      table: { labels: mLabels, vals: mVals },
+      table: { labels: mLabels, vals: mVals, extras: extraMonthly },
     };
   }
 
@@ -240,7 +266,11 @@
       `<div class="card kpi"><div class="kpi-top"><span class="kpi-icon ${k.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k.icon]}</svg></span>` +
       `<span class="kpi-label">${esc(k.label)}</span></div><div class="kpi-value">${esc(k.value)}</div><div class="kpi-note">${esc(k.note)}</div></div>`).join('');
 
-    for (const c of CHARTS) Charts.show(c.id, view.charts[c.key]);
+    for (const c of CHARTS) {
+      const cap = $(c.id)?.closest('figure')?.querySelector('figcaption .muted');
+      if (cap) cap.textContent = c.sub;
+      Charts.show(c.id, view.charts[c.key]);
+    }
 
     // Opening words (DOM APIs, no inline style attributes, so the CSP can stay strict)
     const el = $('openerWords');
@@ -250,12 +280,13 @@
       const p = document.createElement('p'); p.className = 'empty-note'; p.textContent = 'No messages in this period.'; el.append(p);
     } else {
       const max = words[0][1];
-      for (const [w, c] of words) {
+      for (const [w, c, p] of words) {
         const span = document.createElement('span');
         span.className = 'word';
         span.style.fontSize = (0.8 + 0.7 * c / max).toFixed(2) + 'rem';
         span.textContent = w;
-        const small = document.createElement('small'); small.textContent = c;
+        span.title = `Used in ${c} openers (${p})`;
+        const small = document.createElement('small'); small.textContent = `${c} · ${p}`;
         span.append(small);
         el.append(span);
       }
@@ -263,14 +294,16 @@
       el.append(note);
     }
 
-    $('topDays').innerHTML = '<thead><tr><th>Date</th><th>Swipes</th><th>Matches</th></tr></thead><tbody>' +
-      (view.topDays.length ? view.topDays.map(r => `<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')
-        : '<tr><td colspan="3">No swipes in this period.</td></tr>') + '</tbody>';
+    $('topDays').innerHTML = '<thead><tr><th>Date</th><th>Swipes</th><th>Share</th><th>Matches</th></tr></thead><tbody>' +
+      (view.topDays.length ? view.topDays.map(r => `<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[3]}</td><td>${r[2]}</td></tr>`).join('')
+        : '<tr><td colspan="4">No swipes in this period.</td></tr>') + '</tbody>';
 
-    const cols = [['Likes', 'likes'], ['Passes', 'passes'], ['Matches', 'matches'], ['Sent', 'sent'], ['Received', 'received'], ['Opens', 'opens']];
-    const { labels, vals } = view.table;
-    $('monthTable').innerHTML = `<thead><tr><th>Month</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}<th>Match rate</th></tr></thead><tbody>` +
-      vals.map((v, i) => `<tr><td>${labels[i]}</td>${cols.map(c => `<td>${n(v[c[1]])}</td>`).join('')}<td>${v.likes ? pct(v.matches, v.likes) : '–'}</td></tr>`).reverse().join('') +
+    const cols = [['Likes', 'likes'], ['Passes', 'passes'], ['Super Likes', 'superlikes'], ['Matches', 'matches'], ['Sent', 'sent'], ['Received', 'received'], ['Opens', 'opens']];
+    const { labels, vals, extras } = view.table;
+    const xk = Object.keys(extras);
+    $('monthTable').innerHTML = `<thead><tr><th>Month</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}${xk.map(k => `<th>${esc(pretty(k))}</th>`).join('')}<th>Like rate</th><th>Match rate</th></tr></thead><tbody>` +
+      vals.map((v, i) => `<tr><td>${labels[i]}</td>${cols.map(c => `<td>${n(v[c[1]])}</td>`).join('')}${xk.map(k => `<td>${n(extras[k][i])}</td>`).join('')}` +
+        `<td>${pct(v.likes, v.likes + v.passes)}</td><td>${pct(v.matches, v.likes)}</td></tr>`).reverse().join('') +
       '</tbody>';
   }
 
@@ -293,6 +326,155 @@
     return chips;
   }
 
+  // ---------- Extra usage charts (any series Tinder adds that we don't chart by name) ----------
+  function buildExtraCharts() {
+    const host = $('moreCharts');
+    host.replaceChildren();
+    const keys = Object.keys(data.extras || {});
+    const metas = keys.map((k, i) => ({ key: 'x:' + k, id: 'chX' + i, group: 'More activity', title: pretty(k) + ' per month', sub: 'Labels show each month\'s share of the total', wide: keys.length === 1 }));
+    for (const m of metas) {
+      const fig = document.createElement('figure');
+      fig.className = 'card chart-card' + (m.wide ? ' wide' : '');
+      const cap = document.createElement('figcaption');
+      const h = document.createElement('h3'); h.textContent = m.title;
+      const p = document.createElement('p'); p.className = 'muted'; p.textContent = m.sub;
+      cap.append(h, p);
+      const box = document.createElement('div'); box.className = 'chart-box';
+      const cv = document.createElement('canvas'); cv.id = m.id;
+      box.append(cv);
+      fig.append(cap, box);
+      host.append(fig);
+    }
+    $('moreSection').hidden = !metas.length;
+    CHARTS = BASE_CHARTS.concat(metas);
+  }
+
+  // ---------- Conversations browser (all messages in the export) ----------
+  let convoShown = CONVO_PAGE;
+  function renderConversations() {
+    convoShown = CONVO_PAGE;
+    $('convoSearch').value = '';
+    const all = data.conversations;
+    const msgs = all.reduce((s, c) => s + c.messages.length, 0);
+    const withMsgs = all.filter(c => c.messages.length).length;
+    const longest = all.reduce((m, c) => Math.max(m, c.messages.length), 0);
+    $('convoSummary').textContent = all.length
+      ? `${n(all.length)} matches in your export · ${n(withMsgs)} (${pct(withMsgs, all.length)}) with messages from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages`
+      : 'Your export has no conversations.';
+    drawConvoList();
+  }
+
+  function drawConvoList() {
+    const q = $('convoSearch').value.trim().toLowerCase();
+    const totalMsgs = data.conversations.reduce((s, c) => s + c.messages.length, 0);
+    let list = data.conversations.filter(c => c.messages.length || !q);
+    if (q) list = list.filter(c => c.id.toLowerCase().includes(q) || c.messages.some(m => m.text.toLowerCase().includes(q)));
+    list = list.slice().sort((a, b) => b.messages.length - a.messages.length);
+    const host = $('convoList');
+    host.replaceChildren();
+    if (!list.length) {
+      const p = document.createElement('p'); p.className = 'empty-note'; p.textContent = q ? 'No messages match your search.' : 'No conversations.';
+      host.append(p);
+    }
+    for (const c of list.slice(0, convoShown)) {
+      const d = document.createElement('details'); d.className = 'convo';
+      const s = document.createElement('summary');
+      const name = document.createElement('b'); name.textContent = c.id || 'Match';
+      const meta = document.createElement('span'); meta.className = 'convo-meta';
+      const first = c.messages[0], last = c.messages[c.messages.length - 1];
+      meta.textContent = c.messages.length
+        ? `${n(c.messages.length)} messages (${pct(c.messages.length, totalMsgs)} of all) · ${fmtDT(first.date, false)} – ${fmtDT(last.date, false)}`
+        : 'No messages from you';
+      s.append(name, meta);
+      d.append(s);
+      d.addEventListener('toggle', () => {
+        if (!d.open || d.dataset.filled) return;
+        d.dataset.filled = '1';
+        const ul = document.createElement('ul'); ul.className = 'msgs';
+        for (const m of c.messages) {
+          const li = document.createElement('li');
+          const t = document.createElement('time'); t.textContent = fmtDT(m.date, true);
+          const p = document.createElement('p'); p.textContent = m.text || '(no text, such as a GIF or sticker)';
+          if (q && m.text.toLowerCase().includes(q)) li.className = 'hit';
+          li.append(t, p); ul.append(li);
+        }
+        d.append(ul);
+      });
+      host.append(d);
+    }
+    $('convoMore').hidden = list.length <= convoShown;
+    $('convoMore').textContent = `Show more conversations (${n(list.length - convoShown)} more)`;
+  }
+  let searchTimer;
+  $('convoSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { convoShown = CONVO_PAGE; drawConvoList(); }, 200); });
+  $('convoMore').addEventListener('click', () => { convoShown += CONVO_PAGE; drawConvoList(); });
+
+  // ---------- Every other section of the export, rendered generically ----------
+  function renderAllSections() {
+    const host = $('allSections');
+    host.replaceChildren();
+    const secs = [['Profile', data.user], ...Object.entries(data.sections || {})];
+    for (const [name, val] of secs) {
+      if (val == null || (typeof val === 'object' && !Object.keys(val).length)) continue;
+      const card = document.createElement('details'); card.className = 'card data-section';
+      if (name === 'Profile') card.open = true;
+      const sum = document.createElement('summary');
+      const h = document.createElement('h3'); h.textContent = pretty(name);
+      const cnt = document.createElement('span'); cnt.className = 'convo-meta';
+      cnt.textContent = Array.isArray(val) ? `${n(val.length)} items` : (typeof val === 'object' ? `${n(Object.keys(val).length)} fields` : '');
+      sum.append(h, cnt);
+      card.append(sum, renderValue(val, 0));
+      host.append(card);
+    }
+    if (!host.children.length) {
+      const p = document.createElement('p'); p.className = 'empty-note'; p.textContent = 'Your export has no other sections.';
+      host.append(p);
+    }
+  }
+
+  const MAX_ITEMS = 300;
+  function renderValue(v, depth) {
+    if (v == null || v === '') return textEl('span', '–', 'kv-empty');
+    if (typeof v !== 'object') return textEl('span', prettyScalar(v), 'kv-val');
+    if (depth > 6) return textEl('span', JSON.stringify(v).slice(0, 500), 'kv-val');
+    if (Array.isArray(v)) {
+      if (!v.length) return textEl('span', 'none', 'kv-empty');
+      if (v.every(x => x == null || typeof x !== 'object')) {
+        const wrap = document.createElement('div'); wrap.className = 'kv-chips';
+        for (const x of v.slice(0, MAX_ITEMS)) wrap.append(textEl('span', prettyScalar(x), 'kv-chip'));
+        if (v.length > MAX_ITEMS) wrap.append(textEl('span', `+${n(v.length - MAX_ITEMS)} more`, 'kv-empty'));
+        return wrap;
+      }
+      const ol = document.createElement('ol'); ol.className = 'kv-list';
+      for (const x of v.slice(0, MAX_ITEMS)) { const li = document.createElement('li'); li.append(renderValue(x, depth + 1)); ol.append(li); }
+      if (v.length > MAX_ITEMS) ol.append(textEl('li', `+${n(v.length - MAX_ITEMS)} more items`, 'kv-empty'));
+      return ol;
+    }
+    const dl = document.createElement('dl'); dl.className = 'kv';
+    const entries = Object.entries(v);
+    for (const [k, x] of entries.slice(0, MAX_ITEMS)) {
+      dl.append(textEl('dt', pretty(k)));
+      const dd = document.createElement('dd'); dd.append(renderValue(x, depth + 1)); dl.append(dd);
+    }
+    if (entries.length > MAX_ITEMS) dl.append(textEl('dd', `+${n(entries.length - MAX_ITEMS)} more fields`, 'kv-empty'));
+    return dl;
+  }
+  function textEl(tag, txt, cls) { const e = document.createElement(tag); e.textContent = txt; if (cls) e.className = cls; return e; }
+  function prettyScalar(x) {
+    if (typeof x === 'boolean') return x ? 'Yes' : 'No';
+    if (typeof x === 'number') return x.toLocaleString();
+    const s = String(x);
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) { const d = new Date(s); if (!isNaN(d)) return d.toLocaleString(); }
+    return s;
+  }
+  function pretty(k) {
+    const s = String(k).replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  function fmtDT(d, withTime) {
+    return d.toLocaleString(undefined, withTime ? { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } : { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
   // ---------- Helpers ----------
   function n(x) { return Number(x || 0).toLocaleString(); }
   function pct(a, b) {
@@ -308,5 +490,5 @@
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (data) render(); });
 
-  window.SwipeApp = { getView: () => view, CHARTS, ICONS };
+  window.SwipeApp = { getView: () => view, get CHARTS() { return CHARTS; }, ICONS };
 })();

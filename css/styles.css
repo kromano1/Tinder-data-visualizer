@@ -293,6 +293,53 @@ select {
 .table-scroll { overflow-x: auto; max-height: 480px; }
 .table-details { margin-top: 28px; }
 
+/* ---------- Conversations & all-data sections ---------- */
+.section-lede { margin: -6px 0 14px; }
+.convo-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.search {
+  font: inherit; padding: 9px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text); min-width: 0; width: min(320px, 100%);
+}
+.search:focus-visible { outline: 2px solid var(--brand-a); outline-offset: 2px; }
+.convo-list { display: grid; gap: 6px; max-height: 640px; overflow-y: auto; }
+.convo { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.convo summary, .data-section summary {
+  cursor: pointer; list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.convo summary { padding: 11px 14px; }
+.convo summary::-webkit-details-marker, .data-section summary::-webkit-details-marker { display: none; }
+.convo summary::before, .data-section summary::before {
+  content: ""; width: 7px; height: 7px; border: solid var(--text-3); border-width: 0 2px 2px 0; transform: rotate(-45deg);
+  margin-right: 4px; flex: none; align-self: center; transition: transform .15s;
+}
+.convo[open] > summary::before, .data-section[open] > summary::before { transform: rotate(45deg); }
+.convo summary b { flex: 1; font-weight: 650; }
+.convo-meta { color: var(--text-3); font-size: .82rem; }
+.msgs { list-style: none; margin: 0; padding: 4px 14px 14px 28px; display: grid; gap: 8px; }
+.msgs li { background: var(--surface-2); border-radius: 12px; padding: 8px 12px; max-width: 640px; }
+.msgs li.hit { outline: 2px solid color-mix(in srgb, var(--brand-b) 60%, transparent); }
+.msgs time { display: block; font-size: .72rem; color: var(--text-3); margin-bottom: 2px; }
+.msgs p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.more-btn { margin-top: 12px; }
+
+.all-sections { display: grid; gap: 12px; }
+.data-section > summary h3 { flex: 1; }
+.data-section > .kv, .data-section > .kv-list, .data-section > .kv-chips { margin-top: 14px; }
+.kv { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr); gap: 0; margin: 0; font-size: .9rem; }
+.kv > dt { color: var(--text-2); font-weight: 600; padding: 8px 12px 8px 0; border-top: 1px solid var(--grid); }
+.kv > dd { margin: 0; padding: 8px 0; border-top: 1px solid var(--grid); min-width: 0; overflow-wrap: anywhere; }
+.kv .kv { font-size: .86rem; }
+.kv-list { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.kv-list > li { overflow-wrap: anywhere; }
+.kv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.kv-chip { background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; font-size: .84rem; overflow-wrap: anywhere; }
+.kv-empty { color: var(--text-3); }
+@media (max-width: 520px) {
+  .kv { grid-template-columns: minmax(0, 1fr); }
+  .kv > dt { padding-bottom: 0; }
+  .kv > dd { border-top: 0; padding-top: 2px; }
+}
+
 /* ---------- Export dialog ---------- */
 .export-dialog {
   width: min(620px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--border);
@@ -342,6 +389,8 @@ select {
   .toolbar { top: 62px; padding: 8px 8px 8px 14px; }
   .toolbar .btn { padding: 9px 14px; font-size: .86rem; }
   .opt-list { grid-template-columns: 1fr; }
+  #topDays th, #topDays td { padding: 7px 5px; font-size: .82rem; }
+  #topDays td:first-child { white-space: normal; }
   .seg { grid-template-columns: 1fr; }
   .header-actions #exportBtnTop { display: none; }
 }

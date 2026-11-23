@@ -51,7 +51,9 @@
 
     // Build a day-indexed map: { 'YYYY-MM-DD': { opens, likes, ... } }
     const days = {};
+    const usedKeys = new Set();
     for (const [metric, keys] of Object.entries(USAGE_KEYS)) {
+      for (const k of keys) if (usage[k] && typeof usage[k] === 'object') { usedKeys.add(k); break; }
       const series = pickSeries(usage, keys);
       for (const [date, val] of Object.entries(series)) {
         const d = String(date).slice(0, 10);
@@ -61,17 +63,34 @@
       }
     }
 
+    // Any other date-keyed series in Usage (newer exports add things like boosts or super likes received)
+    const extras = {};
+    for (const [k, series] of Object.entries(usage)) {
+      if (usedKeys.has(k) || !series || typeof series !== 'object' || Array.isArray(series)) continue;
+      const clean = {};
+      for (const [date, val] of Object.entries(series)) {
+        const d = String(date).slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && isFinite(Number(val))) clean[d] = (clean[d] || 0) + Number(val);
+      }
+      if (Object.keys(clean).length) extras[k] = clean;
+    }
+
     const conversations = (raw.Messages || raw.messages || []).map(m => {
       const msgs = (m.messages || []).map(x => ({
         text: decodeEntities(String(x.message ?? '')),
         date: parseDate(x.sent_date),
       })).filter(x => x.date);
       msgs.sort((a, b) => a.date - b.date);
-      return { id: m.match_id || '', messages: msgs };
+      return { id: String(m.match_id || ''), messages: msgs };
     });
 
     const user = raw.User || raw.user || {};
-    return { days, conversations, user };
+    // Keep every other top-level section so the dashboard can show all of it
+    const sections = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (!/^(usage|messages|user)$/i.test(k)) sections[k] = v;
+    }
+    return { days, extras, conversations, user, sections };
   }
 
   function blankDay() {

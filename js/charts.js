@@ -27,6 +27,63 @@
     };
   }
 
+  function fmtPct(v) {
+    const p = v * 100;
+    return (p > 0 && p < 10 ? p.toFixed(1) : Math.round(p)) + '%';
+  }
+
+  // Draws a percentage label on every bar segment / point. Labels that would overlap
+  // an already-placed label (or not fit inside a stacked segment) are skipped so text never collides.
+  const pctLabels = {
+    id: 'pctLabels',
+    afterDatasetsDraw(chart, args, o) {
+      if (!o || !o.pct) return;
+      const ctx = chart.ctx, area = chart.chartArea, isBar = chart.config.type === 'bar';
+      const placed = [];
+      ctx.save();
+      ctx.font = `600 ${o.size}px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      chart.data.datasets.forEach((ds, di) => {
+        const arr = o.pct[di];
+        const meta = chart.getDatasetMeta(di);
+        if (!arr || meta.hidden) return;
+        meta.data.forEach((el, i) => {
+          const v = arr[i];
+          if (v == null || !isFinite(v) || v <= 0 || el.skip) return;
+          const s = fmtPct(v);
+          const tw = ctx.measureText(s).width + 4, th = o.size + 3;
+          let x = el.x, y, inside = false;
+          if (isBar && o.stacked) {
+            // Stacked bars: label the first series' share above the whole stack
+            // (the other series is the remainder, and the tooltip shows both).
+            if (di !== 0) return;
+            let top = el.y;
+            chart.data.datasets.forEach((_, dj) => { const e = chart.getDatasetMeta(dj).data[i]; if (e && !chart.getDatasetMeta(dj).hidden) top = Math.min(top, e.y); });
+            y = top - th / 2 - 1;
+          } else if (isBar) {
+            y = el.y - th / 2 - 1;
+          } else {
+            y = el.y - th / 2 - 5;
+          }
+          const r = { x1: x - tw / 2, x2: x + tw / 2, y1: y - th / 2, y2: y + th / 2 };
+          if (r.x1 < area.left - 8 || r.x2 > area.right + 8 || r.y1 < 0) return;
+          if (placed.some(p => r.x1 < p.x2 && r.x2 > p.x1 && r.y1 < p.y2 && r.y2 > p.y1)) return;
+          placed.push(r);
+          if (inside) {
+            ctx.fillStyle = '#ffffff';
+          } else {
+            ctx.strokeStyle = o.halo; ctx.lineWidth = 3; ctx.strokeText(s, x, y);
+            ctx.fillStyle = o.color;
+          }
+          ctx.fillText(s, x, y);
+        });
+      });
+      ctx.restore();
+    },
+  };
+
   function fmtFor(percent) {
     return v => percent ? (v * 100).toFixed(v < 0.1 && v > 0 ? 1 : 0) + '%' : Number(v).toLocaleString();
   }
@@ -67,7 +124,9 @@
     return {
       type: spec.type,
       data: { labels: spec.labels, datasets },
+      plugins: [pctLabels],
       options: {
+        layout: { padding: { top: spec.pct ? 6 : 0 } },
         responsive: !forExport,
         maintainAspectRatio: false,
         animation: forExport ? false : { duration: 350 },
@@ -76,12 +135,19 @@
         events: forExport ? [] : undefined,
         plugins: {
           legend: { display: false },
+          pctLabels: spec.pct ? { pct: spec.pct, stacked: !!o.stacked, size: forExport ? 11.5 : 10, color: t.text2, halo: t.surface } : false,
           tooltip: {
             enabled: !forExport,
             backgroundColor: t.surface, titleColor: t.text, bodyColor: t.text2, borderColor: t.grid, borderWidth: 1,
             padding: 10, boxPadding: 4, usePointStyle: true, cornerRadius: 10,
             titleFont: { weight: '600' },
-            callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? '–' : fmt(c.parsed.y)}` },
+            callbacks: {
+              label: c => {
+                if (c.parsed.y == null) return ` ${c.dataset.label}: –`;
+                const share = !o.percent && spec.pct && spec.pct[c.datasetIndex] ? spec.pct[c.datasetIndex][c.dataIndex] : null;
+                return ` ${c.dataset.label}: ${fmt(c.parsed.y)}` + (share != null && isFinite(share) ? ` (${fmtPct(share)}${spec.pctNote ? ' ' + spec.pctNote : ''})` : '');
+              },
+            },
           },
         },
         scales: {
@@ -91,7 +157,7 @@
             title: o.xTitle ? { display: true, text: o.xTitle, color: t.text3, font: { size: fs } } : undefined,
           },
           y: {
-            stacked: !!o.stacked, beginAtZero: true, grid: { color: t.grid }, border: { display: false },
+            stacked: !!o.stacked, beginAtZero: true, grace: spec.pct ? '12%' : 0, grid: { color: t.grid }, border: { display: false },
             ticks: { color: t.text3, maxTicksLimit: 5, font: { size: fs }, callback: fmt, padding: 6 },
           },
         },
@@ -138,5 +204,5 @@
     for (const k of Object.keys(instances)) { instances[k].destroy(); delete instances[k]; }
   }
 
-  global.Charts = { show, toCanvas, destroyAll, LIGHT, FONT };
+  global.Charts = { show, toCanvas, destroyAll, fmtPct, LIGHT, FONT };
 })(window);
