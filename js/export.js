@@ -584,5 +584,50 @@
     download(doc.output('blob'), fileBase(view) + '.pdf');
   }
 
-  global.ExportReport = { open };
+  // ---------- One story card as a portrait share image (1080 x 1350) ----------
+  const CARD_GRADS = {
+    c1: ['#5b3fd9', '#7b5cf0', '#b04fd6'],
+    c2: ['#7b5cf0', '#e3497a', '#f0803c'],
+    c3: ['#e3497a', '#f0803c', '#f4b04c'],
+  };
+  async function storyCardCanvas(st, i, total) {
+    if (document.fonts && document.fonts.load) await Promise.all(['400', '600', '800'].map(w => document.fonts.load(`${w} 40px Inter`))).catch(() => {});
+    const Wc = 1080, Hc = 1350;
+    const c = document.createElement('canvas'); c.width = Wc; c.height = Hc;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, Wc, Hc);
+    const stops = CARD_GRADS[st.c] || CARD_GRADS.c2;
+    g.addColorStop(0, stops[0]); g.addColorStop(0.55, stops[1]); g.addColorStop(1, stops[2]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, Wc, Hc);
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    ctx.beginPath(); ctx.arc(Wc - 60, 120, 380, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(120, Hc - 80, 260, 0, Math.PI * 2); ctx.fill();
+    // brand
+    rr(ctx, 90, 96, 64, 64, 18); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fill();
+    ctx.save(); ctx.translate(98, 104); ctx.scale(2, 2); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.stroke(new Path2D('M5 17l4-5 3 3 6-7')); ctx.restore();
+    text(ctx, 'SWIPE STATS', 178, 140, F(700, 30), 'rgba(255,255,255,0.92)');
+    if (total) text(ctx, `${i + 1} / ${total}`, Wc - 90, 140, F(600, 30), 'rgba(255,255,255,0.75)', 'right');
+    // icon
+    rr(ctx, 90, 420, 112, 112, 30); ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fill();
+    ctx.save(); ctx.translate(110, 440); ctx.scale(3, 3); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const p of iconPaths(SwipeApp.ICONS[st.icon] || '')) ctx.stroke(p);
+    ctx.restore();
+    // big number, shrunk to fit
+    let size = 190;
+    ctx.font = F(800, size);
+    while (ctx.measureText(st.big).width > Wc - 180 && size > 70) { size -= 6; ctx.font = F(800, size); }
+    text(ctx, st.big, 90, 560 + size * 0.85, F(800, size), '#ffffff');
+    const lines = wrap(ctx, st.text, F(500, 50), Wc - 180);
+    lines.slice(0, 5).forEach((l, j) => text(ctx, l, 90, 560 + size + 70 + j * 66, F(500, 50), 'rgba(255,255,255,0.95)'));
+    text(ctx, 'tinder.romanoindustries.com', 90, Hc - 90, F(500, 28), 'rgba(255,255,255,0.8)');
+    return c;
+  }
+  async function saveStoryCard(st, i, total) {
+    const c = await storyCardCanvas(st, i, total);
+    const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.93));
+    download(blob, `swipe-stats-card-${i + 1}.jpg`);
+  }
+
+  global.ExportReport = { open, saveStoryCard };
 })(window);

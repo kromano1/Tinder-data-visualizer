@@ -318,8 +318,8 @@
       `<div class="card kpi"><div class="kpi-top"><span class="kpi-icon ${k.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k.icon]}</svg></span>` +
       `<span class="kpi-label">${esc(k.label)}</span></div><div class="kpi-value">${esc(k.value)}</div><div class="kpi-note">${esc(k.note)}</div></div>`).join('');
 
-    $('story').innerHTML = view.story.map(st =>
-      `<div class="story-card ${st.c}"><span class="kpi-icon ${st.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[st.icon]}</svg></span>` +
+    $('story').innerHTML = view.story.map((st, i) =>
+      `<div class="story-card ${st.c}"><button class="icon-btn card-save" type="button" data-i="${i}" aria-label="Save this card as an image" title="Save as image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="kpi-icon ${st.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[st.icon]}</svg></span>` +
       `<div class="story-big">${esc(st.big)}</div><p class="story-text">${esc(st.text)}</p></div>`).join('');
     $('storySection').hidden = !view.story.length;
 
@@ -637,6 +637,29 @@
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (data) render(); });
+
+  // ---------- Theme: automatic -> light -> dark ----------
+  const THEME_KEY = 'swipestats.theme';
+  function applyTheme(t) {
+    const root = document.documentElement;
+    if (t === 'light' || t === 'dark') root.dataset.theme = t; else delete root.dataset.theme;
+    const label = t === 'light' ? 'light' : t === 'dark' ? 'dark' : 'automatic';
+    const b = $('themeBtn'); b.dataset.mode = label; b.setAttribute('aria-label', 'Theme: ' + label); b.title = 'Theme: ' + label;
+  }
+  let theme = 'auto';
+  try { theme = localStorage.getItem(THEME_KEY) || 'auto'; } catch (e) { /* storage unavailable */ }
+  applyTheme(theme);
+  $('themeBtn').addEventListener('click', () => {
+    theme = theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto';
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* storage unavailable */ }
+    applyTheme(theme);
+    if (data) render();
+  });
+
+  $('story').addEventListener('click', e => {
+    const b = e.target.closest('.card-save');
+    if (b && view) ExportReport.saveStoryCard(view.story[+b.dataset.i], +b.dataset.i);
+  });
 
   window.SwipeApp = { getView: () => view, get CHARTS() { return CHARTS; }, ICONS };
 })();
