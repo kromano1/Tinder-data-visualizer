@@ -182,3 +182,4 @@ select {
   .card { padding: 14px; }
   .upload-view { padding-top: 32px; }
 }
+.lede a { color: var(--series-1); }
