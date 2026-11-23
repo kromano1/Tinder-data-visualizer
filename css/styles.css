@@ -85,7 +85,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.55 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font: 16px/1.6 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
@@ -271,6 +271,30 @@ select {
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
 .grid-2 > .wide { grid-column: 1 / -1; }
 .chart-card figcaption { margin-bottom: 12px; }
+.chart-card h3 { font-size: 1.08rem; }
+.takeaway {
+  margin: 8px 0 4px; padding: 8px 12px; border-radius: 10px; font-size: .92rem; font-weight: 520; line-height: 1.45; color: var(--text);
+  background: color-mix(in srgb, var(--brand-a) 7%, var(--surface)); border-left: 3px solid var(--brand-a);
+}
+.takeaway:empty { display: none; }
+.takeaway + .muted { margin-top: 6px; font-size: .8rem; color: var(--text-3); }
+
+/* ---------- Your story ---------- */
+.story-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.story-card {
+  position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 22px 22px; box-shadow: var(--shadow);
+}
+.story-card::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--brand-grad); opacity: .85; }
+.story-card .kpi-icon { width: 34px; height: 34px; border-radius: 10px; }
+.story-card .kpi-icon svg { width: 19px; height: 19px; }
+.story-big { font-size: clamp(1.7rem, 3.2vw, 2.3rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; margin-top: 14px; overflow-wrap: anywhere; }
+.story-card.c1 .story-big { color: var(--brand-a); }
+.story-card.c2 .story-big { color: var(--brand-b); }
+.story-card.c3 .story-big { color: color-mix(in srgb, var(--brand-c) 85%, var(--text)); }
+.story-text { margin: 8px 0 0; color: var(--text-2); font-size: 1rem; line-height: 1.5; }
+@media (max-width: 900px) { .story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .story-grid { grid-template-columns: minmax(0, 1fr); } }
 .chart-box { position: relative; height: 240px; }
 .wide .chart-box { height: 290px; }
 

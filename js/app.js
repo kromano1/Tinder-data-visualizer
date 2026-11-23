@@ -2,6 +2,8 @@
   'use strict';
 
   const $ = id => document.getElementById(id);
+  const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const STOPWORDS = new Set(('a an the and or but so to of in on at for with is are was were be been am i im i\'m you your you\'re ' +
@@ -34,6 +36,12 @@
     chat: '<path d="M4 5h16v11H9l-5 4z"/>',
     spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>',
     star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+    calendar: '<path d="M4 6h16v14H4zM4 10h16M8 3v5M16 3v5"/>',
+    clock: '<path d="M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2"/>',
+    trophy: '<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8 20h8M10 17h4"/>',
+    quote: '<path d="M6 17c2-1 3-3 3-6H5V6h5v5c0 4-2 6-4 7zM15 17c2-1 3-3 3-6h-4V6h5v5c0 4-2 6-4 7z"/>',
+    flame: '<path d="M12 21c-3.9 0-6-2.6-6-5.6 0-3.4 3-5.4 3-8.4 2 1 3.5 3 3.5 5 1-1 1.5-2.3 1.5-3.5 2.2 1.7 4 4.3 4 6.9 0 3-2.1 5.6-6 5.6z"/>',
+    ruler: '<path d="M3 16l13-13 5 5L8 21zM7 12l2 2M10 9l2 2M13 6l2 2"/>',
   };
 
   let data = null;
@@ -235,8 +243,46 @@
     const topDays = days.map(([d, v]) => [d, v.likes + v.passes, v.matches]).filter(x => x[1])
       .sort((a, b) => b[1] - a[1]).slice(0, 6).map(([d, s, m]) => [fmtDate(d, true), n(s), n(m), pct(s, swipes)]);
 
+    // ---------- Plain-English story + one-line takeaways ----------
+    const fullM = i => mKeys[i] ? `${FULL_MONTHS[+mKeys[i].slice(5) - 1]} ${mKeys[i].slice(0, 4)}` : '';
+    const peakIdx = arr => { let bi = -1, bv = -Infinity; arr.forEach((v, i) => { if (v != null && v > bv) { bv = v; bi = i; } }); return bv > 0 ? bi : -1; };
+    const lowIdx = arr => { let bi = -1, bv = Infinity; arr.forEach((v, i) => { if (v != null && v < bv) { bv = v; bi = i; } }); return bi; };
+    const hourName = h => h === 0 ? '12 am' : h < 12 ? `${h} am` : h === 12 ? '12 pm' : `${h - 12} pm`;
+    const mMatches = mVals.map(v => v.matches);
+    const story = [];
+    if (totals.matches && totals.likes) story.push({ icon: 'heart', c: 'c2', big: `1 in ${n(Math.max(1, Math.round(totals.likes / totals.matches)))}`, text: 'of your likes turned into a match' });
+    if (swipes) story.push({ icon: 'swipe', c: 'c1', big: pct(totals.likes, swipes), text: `of profiles got a right swipe from you. You passed on the other ${pct(totals.passes, swipes)}.` });
+    const wdTop = peakIdx(wdAvg);
+    if (wdTop >= 0) story.push({ icon: 'calendar', c: 'c3', big: FULL_DAYS[wdTop] + 's', text: `are your busiest swiping days, with ${pct(wdAvg[wdTop], wdAvg.reduce((a, b) => a + b, 0))} of a typical week's swipes` });
+    const bestM = peakIdx(mMatches);
+    if (bestM >= 0) story.push({ icon: 'trophy', c: 'c2', big: fullM(bestM), text: `was your best month: ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total` });
+    if (convos.length) story.push({ icon: 'chat', c: 'c1', big: pct(withMsgs.length, convos.length), text: `of your matches got a message from you. ${n(convos.length - withMsgs.length)} never heard from you.` });
+    const hTop = peakIdx(hours);
+    if (hTop >= 0) story.push({ icon: 'clock', c: 'c3', big: hourName(hTop), text: `is your favorite time to text: ${pct(hours[hTop], sentMsgs.length)} of your messages go out in that hour` });
+    const busiest = days.reduce((b, d) => (d[1].likes + d[1].passes) > (b ? b[1].likes + b[1].passes : 0) ? d : b, null);
+    if (busiest) story.push({ icon: 'flame', c: 'c2', big: n(busiest[1].likes + busiest[1].passes), text: `swipes on ${fmtDate(busiest[0], true)}, your busiest day ever` });
+    if (topWords.length) story.push({ icon: 'quote', c: 'c1', big: `"${topWords[0][0]}"`, text: `is your go-to opener word, used in ${topWords[0][2]} of your first messages` });
+    const longest = withMsgs.reduce((m, c) => Math.max(m, c.messages.length), 0);
+    if (longest) story.push({ icon: 'ruler', c: 'c3', big: n(longest), text: `messages in your longest conversation. The average is ${n(Math.round(sentMsgs.length / withMsgs.length))}.` });
+    else if (totals.opens) story.push({ icon: 'phone', c: 'c3', big: n(Math.round(totals.opens / Math.max(activeDays, 1))), text: 'app opens on a typical active day' });
+
+    const avgOf = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    const tk = {};
+    { const i = peakIdx(mVals.map(v => v.likes + v.passes)); tk.swipes = i >= 0 ? `You swiped most in ${fullM(i)} (${n(mVals[i].likes + mVals[i].passes)} swipes). Overall you liked ${pct(totals.likes, swipes)} of profiles.` : 'No swipes in this period.'; }
+    { const i = peakIdx(likeRate), a = avgOf(likeRate); tk.likeRate = i >= 0 ? `You usually swiped right about ${Charts.fmtPct(a)} of the time, most often in ${fullM(i)} (${Charts.fmtPct(likeRate[i])}).` : 'No swipes in this period.'; }
+    { const lo = lowIdx(wdAvg.map(v => v || null)); tk.weekday = wdTop >= 0 ? `${FULL_DAYS[wdTop]} is your busiest day${lo >= 0 && lo !== wdTop ? ` and ${FULL_DAYS[lo]} the quietest` : ''}.` : 'No swipes in this period.'; }
+    { const arr = mVals.map(v => v.superlikes), i = peakIdx(arr); tk.super = i >= 0 ? `You used ${n(totals.superlikes)} Super Likes, the most in ${fullM(i)} (${n(arr[i])}).` : 'You didn\'t use any Super Likes in this period.'; }
+    tk.matches = bestM >= 0 ? `Your best month was ${fullM(bestM)} with ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total.` : 'No matches in this period.';
+    { const i = peakIdx(matchRate), a = avgOf(matchRate); tk.matchRate = i >= 0 ? `On average ${Charts.fmtPct(a)} of your likes matched each month. ${fullM(i)} was your luckiest at ${Charts.fmtPct(matchRate[i])}.` : 'No likes in this period.'; }
+    { const i = peakIdx(mVals.map(v => v.sent + v.received)); tk.messages = i >= 0 ? `You sent ${n(totals.sent)} messages and received ${n(totals.received)}. ${fullM(i)} was your chattiest month.` : 'No messages in this period.'; }
+    { const night = hours.slice(21).reduce((a, b) => a + b, 0) + hours.slice(0, 3).reduce((a, b) => a + b, 0); tk.hour = hTop >= 0 ? `You text most around ${hourName(hTop)}. ${pct(night, sentMsgs.length)} of your messages are sent between 9 pm and 3 am.` : 'No messages in this period.'; }
+    { const none = convoCounts[0], longC = convoCounts.slice(4).reduce((a, b) => a + b, 0), tot = convoCounts.reduce((a, b) => a + b, 0); tk.convo = tot ? `${pct(none, tot)} of matches never got a message, and ${pct(longC, tot)} of conversations went past 10 messages.` : 'No matches in this period.'; }
+    { const arr = mVals.map(v => v.opens), i = peakIdx(arr); tk.opens = i >= 0 ? `You opened the app ${n(totals.opens)} times, the most in ${fullM(i)} (${n(arr[i])}).` : 'No app opens in this period.'; }
+    for (const [k, arr] of Object.entries(extraMonthly)) { const i = peakIdx(arr); tk['x:' + k] = i >= 0 ? `${n(arr.reduce((a, b) => a + b, 0))} in total, the most in ${fullM(i)} (${n(arr[i])}).` : 'Nothing in this period.'; }
+
     return {
       isDemo: data.isDemo,
+      story, takeaways: tk,
       periodLabel,
       sub: firstDay ? `${fmtDate(firstDay)} – ${fmtDate(lastDay)} · ${activeDays.toLocaleString()} active days` : 'No activity in this period',
       title: data.isDemo ? 'Sample dashboard' : (range === 'all' ? 'All of your swiping' : periodLabel),
@@ -272,9 +318,20 @@
       `<div class="card kpi"><div class="kpi-top"><span class="kpi-icon ${k.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k.icon]}</svg></span>` +
       `<span class="kpi-label">${esc(k.label)}</span></div><div class="kpi-value">${esc(k.value)}</div><div class="kpi-note">${esc(k.note)}</div></div>`).join('');
 
+    $('story').innerHTML = view.story.map(st =>
+      `<div class="story-card ${st.c}"><span class="kpi-icon ${st.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[st.icon]}</svg></span>` +
+      `<div class="story-big">${esc(st.big)}</div><p class="story-text">${esc(st.text)}</p></div>`).join('');
+    $('storySection').hidden = !view.story.length;
+
     for (const c of CHARTS) {
-      const cap = $(c.id)?.closest('figure')?.querySelector('figcaption .muted');
+      const fc = $(c.id)?.closest('figure')?.querySelector('figcaption');
+      const cap = fc?.querySelector('.muted');
       if (cap) cap.textContent = c.sub;
+      if (fc) {
+        let t = fc.querySelector('.takeaway');
+        if (!t) { t = document.createElement('p'); t.className = 'takeaway'; fc.querySelector('h3').after(t); }
+        t.textContent = view.takeaways[c.key] || '';
+      }
       Charts.show(c.id, view.charts[c.key]);
     }
 

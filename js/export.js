@@ -25,6 +25,7 @@
     return [
       { group: 'Summary', items: [
         { key: 'profile', label: 'Profile details', hint: 'Age, gender, city, age filter', def: false },
+        { key: 'story', label: 'Your story', hint: 'Highlights in plain English' },
         { key: 'kpis', label: 'Overview stats', hint: 'Matches, swipes, rates and more' },
         { key: 'exportOv', label: 'About this export', hint: 'Date range, matches kept vs removed' },
       ] },
@@ -297,16 +298,61 @@
     };
   }
 
-  function chartItem(meta, spec, scale) {
+  function storyRow(story) {
+    const cols = 3, gap = 14, pad = 20;
+    const tw = (CW - gap * (cols - 1)) / cols;
+    const meas = document.createElement('canvas').getContext('2d');
+    const lines = story.map(st => wrap(meas, st.text, F(400, 14.5), tw - pad * 2));
+    const rowsN = Math.ceil(story.length / cols);
+    const rowH = r => 112 + Math.max(...lines.slice(r * cols, r * cols + cols).map(l => l.length)) * 20;
+    const heights = Array.from({ length: rowsN }, (_, r) => rowH(r));
+    return {
+      h: heights.reduce((a, b) => a + b, 0) + gap * (rowsN - 1),
+      draw(ctx) {
+        let y = 0;
+        for (let r = 0; r < rowsN; r++) {
+          for (let c = 0; c < cols; c++) {
+            const i = r * cols + c; if (i >= story.length) break;
+            const st = story[i], x = P + c * (tw + gap), h = heights[r];
+            card(ctx, x, y, tw, h);
+            ctx.save(); rr(ctx, x, y, tw, h, 16); ctx.clip();
+            ctx.fillStyle = gradient(ctx, x, y, tw, 4); ctx.fillRect(x, y, tw, 4); ctx.restore();
+            const tint = TINT[st.c] || C.a;
+            rr(ctx, x + pad, y + 20, 32, 32, 10);
+            ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = tint; ctx.fill(); ctx.restore();
+            ctx.save(); ctx.translate(x + pad + 6, y + 26); ctx.scale(0.83, 0.83);
+            ctx.strokeStyle = tint; ctx.lineWidth = 2.3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            for (const p of iconPaths(SwipeApp.ICONS[st.icon] || '')) ctx.stroke(p);
+            ctx.restore();
+            text(ctx, fit(ctx, st.big, F(800, 30), tw - pad * 2), x + pad, y + 92, F(800, 30), tint);
+            lines[i].forEach((l, j) => text(ctx, l, x + pad, y + 118 + j * 20, F(400, 14.5), C.text2));
+          }
+          y += heights[r] + gap;
+        }
+      },
+    };
+  }
+
+  function chartItem(meta, spec, scale, takeaway) {
     const multi = spec.datasets.length > 1;
+    const meas = document.createElement('canvas').getContext('2d');
+    const takeLines = w => takeaway ? wrap(meas, takeaway, F(520, 13.5), w - 66) : [];
     return {
       wide: !!meta.wide,
-      height: () => meta.wide ? 340 : 320,
+      height: w => (meta.wide ? 340 : 320) + (takeaway ? takeLines(w).length * 18 + 22 : 0),
       draw(ctx, x, y, w, h) {
         card(ctx, x, y, w, h);
         text(ctx, fit(ctx, meta.title, F(650, 17), w - 44), x + 22, y + 36, F(650, 17), C.text);
         let top = y + 50;
-        if (meta.sub) { text(ctx, fit(ctx, meta.sub, F(400, 13), w - 44), x + 22, y + 58, F(400, 13), C.text2); top = y + 72; }
+        if (takeaway) {
+          const tl = takeLines(w);
+          const bh = tl.length * 18 + 14;
+          rr(ctx, x + 22, y + 48, w - 44, bh, 9); ctx.fillStyle = '#f2effd'; ctx.fill();
+          ctx.fillStyle = C.a; ctx.fillRect(x + 22, y + 48, 3, bh);
+          tl.forEach((l, i) => text(ctx, l, x + 34, y + 66 + i * 18, F(520, 13.5), C.text));
+          top = y + 48 + bh + 6;
+        }
+        if (meta.sub) { text(ctx, fit(ctx, meta.sub, F(400, 12), w - 44), x + 22, top + 10, F(400, 12), C.text3); top += 22; }
         if (multi) {
           let lx = x + 22;
           spec.datasets.forEach((d, i) => {
@@ -433,13 +479,14 @@
 
   function buildRows(view, sel, scale) {
     const rows = [headerRow(view, sel.profile)];
+    if (sel.story && view.story.length) rows.push(sectionRow('Your story'), storyRow(view.story));
     if (sel.kpis) rows.push(sectionRow('Overview'), kpiRow(view.kpis));
     if (sel.exportOv && view.exportOv) rows.push(sectionRow('About this export'), exportOvRow(view.exportOv));
     const groups = ['Swiping', 'Matching', 'Messaging', 'Highlights', 'App usage', 'More activity'];
     for (const g of groups) {
       const items = [];
       for (const m of SwipeApp.CHARTS.filter(c => c.group === g)) {
-        if (sel['chart:' + m.key]) items.push(chartItem(m, view.charts[m.key], scale));
+        if (sel['chart:' + m.key]) items.push(chartItem(m, view.charts[m.key], scale, view.takeaways[m.key]));
       }
       if (g === 'Highlights') {
         if (sel.words) items.push(wordsItem(view.openers));
