@@ -11,6 +11,8 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - Messages sent and received per month, the hours you send messages, conversation lengths
 - Your most common opening words, and your busiest swiping days
 - A period filter (all time, last 12 months, or a single year) and a monthly data table
+- **Export** as a multi-page PDF report or a single JPEG image, choosing exactly which sections to include
+  (profile details are off by default). Exports are drawn on a canvas in the browser and saved directly to downloads.
 
 It accepts either the `.zip` Tinder emails you or the `data.json` file inside it.
 A **Try it with sample data** button shows a demo with generated data.
@@ -27,8 +29,8 @@ static host:
 
 To try it locally, run `python3 -m http.server` in this folder and open http://localhost:8000.
 
-Chart.js 4.4.1 and JSZip 3.10.1 are bundled in `js/vendor/` (MIT licensed; see the license files there),
-so the site doesn't depend on any external CDN.
+Chart.js 4.4.1, JSZip 3.10.1 and jsPDF 2.5.1 are bundled in `js/vendor/`, and the Inter font in `fonts/`
+(see the license files there), so the site doesn't depend on any external CDN.
 
 ## Privacy and security
 
@@ -44,7 +46,7 @@ so the site doesn't depend on any external CDN.
 ## Deploying to Hostinger
 
 1. In hPanel open **File Manager** for the site (for a subdomain such as `tinder.example.com`, use that subdomain's folder).
-2. Upload `index.html`, `.htaccess`, `css/` and `js/` (or a zip of them and use **Extract**). Remove any default `index.php`/`default.php`.
+2. Upload `index.html`, `404.html`, `robots.txt`, `.htaccess`, `css/`, `js/` and `fonts/` (or a zip of them and use **Extract**). Remove any default `index.php`/`default.php`.
 3. Make sure an SSL certificate is active for the domain (hPanel → Security → SSL), since `.htaccess` redirects to HTTPS.
 4. File Manager hides dotfiles by default; enable "show hidden files" to confirm `.htaccess` is there.
 

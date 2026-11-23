@@ -4,178 +4,250 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Privacy: connect-src 'none' means this page cannot send data anywhere, not even back to this server. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Swipe Stats</title>
   <meta name="description" content="Visualize your Tinder data export privately in your browser. Your file never leaves your device.">
   <meta property="og:title" content="Swipe Stats">
-  <meta property="og:description" content="Turn your Tinder data export into charts. Runs entirely in your browser. Your file is never uploaded.">
+  <meta property="og:description" content="Turn your Tinder data export into beautiful charts. Runs entirely in your browser. Your file is never uploaded.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://tinder.romanoindustries.com/">
-  <meta name="theme-color" content="#e34948">
+  <meta name="theme-color" content="#7b5cf0">
   <link rel="canonical" href="https://tinder.romanoindustries.com/">
-  <link rel="stylesheet" href="css/styles.css?v=3">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e34948'/><path d='M9 21l5-6 4 4 5-8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="preload" href="fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/styles.css?v=4">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237b5cf0'/><stop offset='.6' stop-color='%23e3497a'/><stop offset='1' stop-color='%23f0803c'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><path d='M8 22l5-6 4 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 </head>
 <body>
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="./">
-        <span class="brand-mark" aria-hidden="true"></span>
-        Swipe Stats
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 17l4-5 3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>Swipe Stats</span>
       </a>
       <nav class="header-actions">
-        <button id="resetBtn" class="btn btn-ghost" hidden>Clear data &amp; load another file</button>
+        <button id="exportBtnTop" class="btn btn-primary btn-sm" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Export
+        </button>
+        <button id="resetBtn" class="btn btn-ghost btn-sm" hidden>Clear data</button>
       </nav>
     </div>
   </header>
 
   <main>
-    <!-- Upload screen -->
-    <section id="uploadView" class="wrap upload-view">
-      <div class="hero">
-        <h1>See what your swipes say about you</h1>
-        <p class="lede">Drop in your Tinder data export to see your swipes, matches, conversations and habits as charts.
-          Everything runs in your browser. Your data is never uploaded anywhere.</p>
-      </div>
+    <!-- ============ Upload screen ============ -->
+    <section id="uploadView" class="upload-view">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="wrap">
+        <div class="hero">
+          <span class="pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0110 0v3M6 11h12v9H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> 100% private · runs in your browser</span>
+          <h1>See what your swipes<br><span class="grad-text">say about you</span></h1>
+          <p class="lede">Turn your Tinder data export into beautiful charts: swipes, matches, conversations and habits. Then export your stats as a PDF or image to share.</p>
+        </div>
 
-      <label id="dropZone" class="drop-zone" for="fileInput">
-        <input id="fileInput" type="file" accept=".json,.zip,application/json,application/zip">
-        <svg class="drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0l-5 5m5-5l5 5M4 20h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="drop-title">Drop <code>data.json</code> or the export <code>.zip</code> here</span>
-        <span class="drop-sub">or click to choose a file</span>
-      </label>
-      <p id="uploadError" class="error" role="alert" hidden></p>
+        <label id="dropZone" class="drop-zone" for="fileInput">
+          <input id="fileInput" type="file" accept=".json,.zip,application/json,application/zip">
+          <span class="drop-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-5 5m5-5l5 5M4 20h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="drop-title">Drop your <code>.zip</code> or <code>data.json</code> here</span>
+          <span class="drop-sub">or <u>browse your files</u></span>
+        </label>
+        <p id="uploadError" class="error" role="alert" hidden></p>
 
-      <div class="upload-alt">
-        <button id="demoBtn" class="btn">Try it with sample data</button>
-      </div>
+        <div class="upload-alt">
+          <span class="muted">No export yet?</span>
+          <button id="demoBtn" class="btn btn-soft">Explore with sample data</button>
+        </div>
 
-      <div class="howto">
-        <h2>How to get your data</h2>
-        <ol>
-          <li>Go to <strong>account.gotinder.com/data</strong> and sign in.</li>
-          <li>Request your data. Tinder emails you a download link, usually within a few days.</li>
-          <li>Download the <code>.zip</code> file and drop it above. You can also drop just the <code>data.json</code> file inside it.</li>
-        </ol>
-      </div>
+        <div class="features">
+          <div class="feature">
+            <span class="f-icon f1" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+            <h3>Swipes &amp; matches</h3>
+            <p>Like rate, match rate, busiest days and how your activity changed month by month.</p>
+          </div>
+          <div class="feature">
+            <span class="f-icon f2" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+            <h3>Conversations</h3>
+            <p>Messages sent and received, when you text, conversation lengths and your go-to openers.</p>
+          </div>
+          <div class="feature">
+            <span class="f-icon f3" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Export &amp; share</h3>
+            <p>Pick exactly what to include and download a polished PDF report or a JPEG image.</p>
+          </div>
+        </div>
 
-      <div class="howto privacy">
-        <h2>Your privacy</h2>
-        <ul>
-          <li>Your file is opened and analyzed <strong>entirely inside your browser</strong>. It is never uploaded to this website or anyone else.</li>
-          <li>The site is locked down so the page cannot make network requests at all, so it has no way to send your data anywhere.</li>
-          <li>No accounts, cookies, analytics, ads or trackers. Nothing is saved: close or refresh the tab and your data is gone.</li>
-          <li>It even works offline: load the page, turn off your internet, then open your file.</li>
-        </ul>
-        <p class="fine">Swipe Stats is an independent project and is not affiliated with Tinder or Match Group.</p>
+        <div class="info-grid">
+          <div class="info-card">
+            <h2>How to get your data</h2>
+            <ol class="steps">
+              <li><span>1</span><div>Go to <strong>account.gotinder.com/data</strong> and sign in.</div></li>
+              <li><span>2</span><div>Request your data. Tinder emails you a download link, usually within a few days.</div></li>
+              <li><span>3</span><div>Download the <code>.zip</code> and drop it above. The <code>data.json</code> inside it works too.</div></li>
+            </ol>
+          </div>
+          <div class="info-card privacy">
+            <h2>Your privacy</h2>
+            <ul class="checks">
+              <li>Your file is analyzed <strong>entirely inside your browser</strong>. It is never uploaded to this website or anyone else.</li>
+              <li>The page is locked down so it cannot make network requests at all, so it has no way to send your data anywhere.</li>
+              <li>No accounts, cookies, analytics, ads or trackers. Close or refresh the tab and your data is gone.</li>
+              <li>Exports are created on your device and saved straight to your downloads.</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Dashboard -->
-    <section id="dashView" class="wrap dash-view" hidden>
-      <div class="dash-head">
-        <div>
-          <h1 id="dashTitle">Your Tinder, in numbers</h1>
-          <p id="dashSub" class="muted"></p>
+    <!-- ============ Dashboard ============ -->
+    <section id="dashView" class="dash-view" hidden>
+      <div class="wrap">
+        <div class="dash-hero">
+          <div class="dash-hero-text">
+            <p class="eyebrow" id="dashEyebrow">Your Tinder, in numbers</p>
+            <h1 id="dashTitle">Your stats</h1>
+            <p id="dashSub"></p>
+            <div id="profile" class="profile-strip"></div>
+          </div>
+          <div class="dash-hero-big" id="heroBig"></div>
         </div>
-        <div class="filters">
-          <label for="rangeSelect" class="filter-label">Period</label>
-          <select id="rangeSelect"></select>
+
+        <div class="toolbar">
+          <div class="filters">
+            <label for="rangeSelect" class="filter-label">Period</label>
+            <select id="rangeSelect"></select>
+          </div>
+          <button id="exportBtn" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Export PDF or image
+          </button>
         </div>
-      </div>
 
-      <div id="profile" class="profile-strip"></div>
+        <h2 class="section-title">Overview</h2>
+        <div id="kpis" class="kpi-grid"></div>
 
-      <h2 class="section-title">Overview</h2>
-      <div id="kpis" class="kpi-grid"></div>
-
-      <h2 class="section-title">Swiping</h2>
-      <div class="grid-2">
-        <figure class="card chart-card wide">
-          <figcaption><h3>Likes and passes per month</h3></figcaption>
-          <div class="legend" data-legend="swipes"></div>
-          <div class="chart-box"><canvas id="chSwipes"></canvas></div>
-        </figure>
-        <figure class="card chart-card">
-          <figcaption><h3>Like rate per month</h3><p class="muted">Share of swipes that were right swipes</p></figcaption>
-          <div class="chart-box"><canvas id="chLikeRate"></canvas></div>
-        </figure>
-        <figure class="card chart-card">
-          <figcaption><h3>Average swipes by weekday</h3></figcaption>
-          <div class="chart-box"><canvas id="chWeekday"></canvas></div>
-        </figure>
-      </div>
-
-      <h2 class="section-title">Matching</h2>
-      <div class="grid-2">
-        <figure class="card chart-card">
-          <figcaption><h3>Matches per month</h3></figcaption>
-          <div class="chart-box"><canvas id="chMatches"></canvas></div>
-        </figure>
-        <figure class="card chart-card">
-          <figcaption><h3>Match rate per month</h3><p class="muted">Matches divided by likes sent</p></figcaption>
-          <div class="chart-box"><canvas id="chMatchRate"></canvas></div>
-        </figure>
-      </div>
-
-      <h2 class="section-title">Messaging</h2>
-      <div class="grid-2">
-        <figure class="card chart-card wide">
-          <figcaption><h3>Messages sent and received per month</h3></figcaption>
-          <div class="legend" data-legend="messages"></div>
-          <div class="chart-box"><canvas id="chMessages"></canvas></div>
-        </figure>
-        <figure class="card chart-card">
-          <figcaption><h3>When you send messages</h3><p class="muted">By hour of day, in your local time</p></figcaption>
-          <div class="chart-box"><canvas id="chHour"></canvas></div>
-        </figure>
-        <figure class="card chart-card">
-          <figcaption><h3>Conversation length</h3><p class="muted">Messages you sent per match</p></figcaption>
-          <div class="chart-box"><canvas id="chConvo"></canvas></div>
-        </figure>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h3>Your favorite opening words</h3>
-          <p class="muted">Most common words in your first message to each match</p>
-          <div id="openerWords" class="word-cloud"></div>
+        <h2 class="section-title">Swiping</h2>
+        <div class="grid-2">
+          <figure class="card chart-card wide">
+            <figcaption><h3>Likes and passes per month</h3></figcaption>
+            <div class="legend" id="chSwipes-legend"></div>
+            <div class="chart-box"><canvas id="chSwipes"></canvas></div>
+          </figure>
+          <figure class="card chart-card">
+            <figcaption><h3>Like rate per month</h3><p class="muted">Share of swipes that were right swipes</p></figcaption>
+            <div class="chart-box"><canvas id="chLikeRate"></canvas></div>
+          </figure>
+          <figure class="card chart-card">
+            <figcaption><h3>Average swipes by weekday</h3><p class="muted">On days you swiped</p></figcaption>
+            <div class="chart-box"><canvas id="chWeekday"></canvas></div>
+          </figure>
         </div>
-        <div class="card">
-          <h3>Your most active days</h3>
-          <p class="muted">Days with the most swipes</p>
-          <table class="data-table" id="topDays"></table>
+
+        <h2 class="section-title">Matching</h2>
+        <div class="grid-2">
+          <figure class="card chart-card">
+            <figcaption><h3>Matches per month</h3></figcaption>
+            <div class="chart-box"><canvas id="chMatches"></canvas></div>
+          </figure>
+          <figure class="card chart-card">
+            <figcaption><h3>Match rate per month</h3><p class="muted">Matches divided by likes sent</p></figcaption>
+            <div class="chart-box"><canvas id="chMatchRate"></canvas></div>
+          </figure>
         </div>
-      </div>
 
-      <h2 class="section-title">App usage</h2>
-      <div class="grid-2">
-        <figure class="card chart-card wide">
-          <figcaption><h3>App opens per month</h3></figcaption>
-          <div class="chart-box"><canvas id="chOpens"></canvas></div>
-        </figure>
-      </div>
+        <h2 class="section-title">Messaging</h2>
+        <div class="grid-2">
+          <figure class="card chart-card wide">
+            <figcaption><h3>Messages sent and received per month</h3></figcaption>
+            <div class="legend" id="chMessages-legend"></div>
+            <div class="chart-box"><canvas id="chMessages"></canvas></div>
+          </figure>
+          <figure class="card chart-card">
+            <figcaption><h3>When you send messages</h3><p class="muted">By hour of day, in your local time</p></figcaption>
+            <div class="chart-box"><canvas id="chHour"></canvas></div>
+          </figure>
+          <figure class="card chart-card">
+            <figcaption><h3>Conversation length</h3><p class="muted">Messages you sent per match</p></figcaption>
+            <div class="chart-box"><canvas id="chConvo"></canvas></div>
+          </figure>
+          <div class="card">
+            <h3>Your favorite opening words</h3>
+            <p class="muted">Most common words in your first message to each match</p>
+            <div id="openerWords" class="word-cloud"></div>
+          </div>
+          <div class="card">
+            <h3>Your most active days</h3>
+            <p class="muted">Days with the most swipes</p>
+            <table class="data-table" id="topDays"></table>
+          </div>
+        </div>
 
-      <details class="card table-details">
-        <summary>Show monthly data as a table</summary>
-        <div class="table-scroll"><table class="data-table" id="monthTable"></table></div>
-      </details>
+        <h2 class="section-title">App usage</h2>
+        <div class="grid-2">
+          <figure class="card chart-card wide">
+            <figcaption><h3>App opens per month</h3></figcaption>
+            <div class="chart-box"><canvas id="chOpens"></canvas></div>
+          </figure>
+        </div>
+
+        <details class="card table-details">
+          <summary>Show monthly data as a table</summary>
+          <div class="table-scroll"><table class="data-table" id="monthTable"></table></div>
+        </details>
+      </div>
     </section>
   </main>
 
+  <!-- ============ Export dialog ============ -->
+  <dialog id="exportDialog" class="export-dialog" aria-labelledby="exportTitle">
+    <div class="dlg-head">
+      <h2 id="exportTitle">Export your stats</h2>
+      <button class="icon-btn" id="exportClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <fieldset class="seg">
+        <legend>Format</legend>
+        <label><input type="radio" name="fmt" value="pdf" checked><span><b>PDF report</b><small>Pages you can print or send</small></span></label>
+        <label><input type="radio" name="fmt" value="jpeg"><span><b>JPEG image</b><small>One tall image for sharing</small></span></label>
+      </fieldset>
+
+      <div class="opt-head">
+        <h3>What to include</h3>
+        <div class="opt-links"><button type="button" class="link" id="optAll">Select all</button> · <button type="button" class="link" id="optNone">None</button></div>
+      </div>
+      <div id="exportOptions" class="opt-groups"></div>
+
+      <p class="dlg-note" id="exportPeriodNote"></p>
+    </div>
+    <div class="dlg-foot">
+      <p class="dlg-status" id="exportStatus" role="status"></p>
+      <button class="btn btn-ghost" id="exportCancel">Cancel</button>
+      <button class="btn btn-primary" id="exportGo">Download</button>
+    </div>
+  </dialog>
+
+  <div id="offscreen" class="offscreen" aria-hidden="true"></div>
+
   <footer class="site-footer">
-    <div class="wrap">
-      <p>Your file is processed locally in your browser and is never sent to a server.
-        Not affiliated with Tinder or Match Group.</p>
+    <div class="wrap footer-inner">
+      <span class="brand small"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 17l4-5 3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Swipe Stats</span>
+      <p>Your file is processed locally in your browser and is never sent to a server. Not affiliated with Tinder or Match Group.</p>
     </div>
   </footer>
 
-  <script src="js/vendor/chart.umd.js?v=3"></script>
-  <script src="js/vendor/jszip.min.js?v=3"></script>
-  <script src="js/parse.js?v=3"></script>
-  <script src="js/demo.js?v=3"></script>
-  <script src="js/charts.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/vendor/chart.umd.js?v=4"></script>
+  <script src="js/vendor/jszip.min.js?v=4"></script>
+  <script src="js/vendor/jspdf.umd.min.js?v=4"></script>
+  <script src="js/parse.js?v=4"></script>
+  <script src="js/demo.js?v=4"></script>
+  <script src="js/charts.js?v=4"></script>
+  <script src="js/export.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
