@@ -15,7 +15,7 @@
   <meta name="theme-color" content="#7b5cf0">
   <link rel="canonical" href="https://tinder.romanoindustries.com/">
   <link rel="preload" href="fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/styles.css?v=5">
+  <link rel="stylesheet" href="css/styles.css?v=6">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237b5cf0'/><stop offset='.6' stop-color='%23e3497a'/><stop offset='1' stop-color='%23f0803c'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><path d='M8 22l5-6 4 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 </head>
 <body>
@@ -129,6 +129,19 @@
 
         <h2 class="section-title">Overview</h2>
         <div id="kpis" class="kpi-grid"></div>
+
+        <h2 class="section-title">About this export</h2>
+        <div class="card export-ov">
+          <p class="muted ov-lede">A summary of the whole data file. This section always covers everything in the file, whatever period is selected above.</p>
+          <div class="ov-grid" id="ovGrid"></div>
+          <div class="ov-matches">
+            <h3>Where your matches went</h3>
+            <p class="muted" id="ovMatchNote"></p>
+            <div class="ov-bar" id="ovBar"></div>
+            <div class="legend ov-legend" id="ovLegend"></div>
+          </div>
+          <div class="ov-sections"><span class="muted">Sections in this file</span><div id="ovSections" class="kv-chips"></div></div>
+        </div>
 
         <h2 class="section-title">Swiping</h2>
         <div class="grid-2">
@@ -267,13 +280,13 @@
     </div>
   </footer>
 
-  <script src="js/vendor/chart.umd.js?v=5"></script>
-  <script src="js/vendor/jszip.min.js?v=5"></script>
-  <script src="js/vendor/jspdf.umd.min.js?v=5"></script>
-  <script src="js/parse.js?v=5"></script>
-  <script src="js/demo.js?v=5"></script>
-  <script src="js/charts.js?v=5"></script>
-  <script src="js/export.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/vendor/chart.umd.js?v=6"></script>
+  <script src="js/vendor/jszip.min.js?v=6"></script>
+  <script src="js/vendor/jspdf.umd.min.js?v=6"></script>
+  <script src="js/parse.js?v=6"></script>
+  <script src="js/demo.js?v=6"></script>
+  <script src="js/charts.js?v=6"></script>
+  <script src="js/export.js?v=6"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

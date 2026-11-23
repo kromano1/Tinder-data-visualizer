@@ -293,6 +293,22 @@ select {
 .table-scroll { overflow-x: auto; max-height: 480px; }
 .table-details { margin-top: 28px; }
 
+/* ---------- About this export ---------- */
+.ov-lede { margin: 0 0 14px; }
+.ov-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ov-stat { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+.ov-value { font-size: 1.45rem; font-weight: 760; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.2; }
+.ov-stat.small .ov-value { font-size: 1rem; font-weight: 650; letter-spacing: -0.01em; margin-top: 6px; }
+.ov-matches { margin-top: 20px; }
+.ov-matches .muted { max-width: 760px; }
+.ov-bar { display: flex; height: 30px; border-radius: 10px; overflow: hidden; margin: 12px 0 10px; background: var(--surface-2); }
+.ov-seg { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .8rem; font-weight: 700; min-width: 2px; }
+.ov-seg + .ov-seg { border-left: 2px solid var(--surface); }
+.ov-legend { margin: 0; }
+.ov-sections { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ov-sections .muted { margin: 0 4px 0 0; }
+@media (max-width: 900px) { .ov-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /* ---------- Conversations & all-data sections ---------- */
 .section-lede { margin: -6px 0 14px; }
 .convo-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }

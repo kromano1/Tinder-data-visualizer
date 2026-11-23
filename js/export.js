@@ -26,6 +26,7 @@
       { group: 'Summary', items: [
         { key: 'profile', label: 'Profile details', hint: 'Age, gender, city, age filter', def: false },
         { key: 'kpis', label: 'Overview stats', hint: 'Matches, swipes, rates and more' },
+        { key: 'exportOv', label: 'About this export', hint: 'Date range, matches kept vs removed' },
       ] },
       { group: 'Swiping', items: byGroup('Swiping') },
       { group: 'Matching', items: byGroup('Matching') },
@@ -243,6 +244,59 @@
     };
   }
 
+  function exportOvRow(ov) {
+    const cols = 4, gap = 10, sh = 78, pad = 22;
+    const iw = CW - pad * 2;
+    const tw = (iw - gap * (cols - 1)) / cols;
+    const rows = Math.ceil(ov.stats.length / cols);
+    const meas = document.createElement('canvas').getContext('2d');
+    const noteLines = wrap(meas, ov.note, F(400, 13), iw);
+    const gridH = rows * sh + (rows - 1) * gap;
+    const h = pad + gridH + 26 + 22 + noteLines.length * 18 + 12 + 30 + 34 + pad - 6;
+    const colors = Charts.LIGHT.series;
+    return {
+      h,
+      draw(ctx) {
+        const x = P, w = CW;
+        card(ctx, x, 0, w, h);
+        ov.stats.forEach((s, i) => {
+          const sx = x + pad + (i % cols) * (tw + gap), sy = pad + Math.floor(i / cols) * (sh + gap);
+          rr(ctx, sx, sy, tw, sh, 12); ctx.fillStyle = C.pill; ctx.fill();
+          text(ctx, fit(ctx, s.label, F(600, 12.5), tw - 24), sx + 12, sy + 22, F(600, 12.5), C.text2);
+          const vf = s.small ? F(650, 13.5) : F(760, 22);
+          text(ctx, fit(ctx, s.value, vf, tw - 24), sx + 12, sy + (s.small ? 46 : 50), vf, C.text);
+          text(ctx, fit(ctx, s.note || '', F(400, 11.5), tw - 24), sx + 12, sy + 68, F(400, 11.5), C.text3);
+        });
+        let y = pad + gridH + 30;
+        text(ctx, 'Where your matches went', x + pad, y, F(650, 16), C.text);
+        y += 22;
+        noteLines.forEach((l, i) => text(ctx, l, x + pad, y + i * 18, F(400, 13), C.text2));
+        y += noteLines.length * 18 + 4;
+        // stacked bar
+        let bx = x + pad;
+        rr(ctx, bx, y, iw, 30, 10); ctx.fillStyle = C.pill; ctx.fill();
+        ctx.save(); rr(ctx, bx, y, iw, 30, 10); ctx.clip();
+        ov.bar.forEach((b, i) => {
+          if (!b.value) return;
+          const bw = iw * b.pct;
+          ctx.fillStyle = colors[i]; ctx.fillRect(bx, y, bw, 30);
+          if (i > 0) { ctx.fillStyle = C.card; ctx.fillRect(bx - 1, y, 2, 30); }
+          if (b.pct >= 0.12) text(ctx, Charts.fmtPct(b.pct), bx + bw / 2, y + 20, F(700, 12.5), '#fff', 'center');
+          bx += bw;
+        });
+        ctx.restore();
+        y += 52;
+        let lx = x + pad;
+        ov.bar.forEach((b, i) => {
+          rr(ctx, lx, y - 10, 10, 10, 3); ctx.fillStyle = colors[i]; ctx.fill();
+          const t = `${b.label}: ${b.value.toLocaleString()} (${Charts.fmtPct(b.pct)})`;
+          text(ctx, t, lx + 16, y, F(500, 13), C.text2);
+          ctx.font = F(500, 13); lx += 16 + ctx.measureText(t).width + 22;
+        });
+      },
+    };
+  }
+
   function chartItem(meta, spec, scale) {
     const multi = spec.datasets.length > 1;
     return {
@@ -380,6 +434,7 @@
   function buildRows(view, sel, scale) {
     const rows = [headerRow(view, sel.profile)];
     if (sel.kpis) rows.push(sectionRow('Overview'), kpiRow(view.kpis));
+    if (sel.exportOv && view.exportOv) rows.push(sectionRow('About this export'), exportOvRow(view.exportOv));
     const groups = ['Swiping', 'Matching', 'Messaging', 'Highlights', 'App usage', 'More activity'];
     for (const g of groups) {
       const items = [];

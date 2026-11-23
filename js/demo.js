@@ -52,7 +52,7 @@
           const len = Math.max(1, Math.floor(Math.pow(r(), 2.2) * 40));
           const t = new Date(d);
           t.setHours(Math.floor(r() < 0.7 ? 18 + r() * 6 : 8 + r() * 10), Math.floor(r() * 60));
-          for (let j = 0; j < len; j++) {
+          for (let j = 0; j < len && t < end; j++) {
             const text = j === 0 ? openers[Math.floor(r() * openers.length)] : replies[Math.floor(r() * replies.length)];
             convo.push({ to: matchNo, from: 'You', message: text, sent_date: t.toUTCString() });
             const tk = t.toISOString().slice(0, 10);
@@ -61,7 +61,8 @@
             t.setMinutes(t.getMinutes() + Math.floor(r() * 600));
           }
         }
-        messages.push({ match_id: 'Match ' + matchNo, messages: convo });
+        // Real exports leave out matches that were later unmatched or deleted
+        if (r() > 0.22) messages.push({ match_id: 'Match ' + matchNo, messages: convo });
       }
     }
 

@@ -71,7 +71,9 @@
     err.hidden = true;
     dropZone.classList.add('loading');
     try {
-      show(await TinderParse.readFile(file), false);
+      const parsed = await TinderParse.readFile(file);
+      parsed.fileInfo = { name: file.name, size: file.size };
+      show(parsed, false);
     } catch (e) {
       console.error(e);
       err.textContent = e.message || 'Something went wrong reading that file.';
@@ -105,6 +107,8 @@
     buildExtraCharts();
     renderConversations();
     renderAllSections();
+    exportOv = computeExportOverview();
+    renderExportOverview();
     render();
     window.scrollTo(0, 0);
   }
@@ -162,7 +166,9 @@
     const periodLabel = $('rangeSelect').selectedOptions[0]?.textContent || 'All time';
 
     const kpis = [
-      { label: 'Matches', value: n(totals.matches), note: `${pct(totals.matches, totals.likes)} of your likes`, icon: 'heart', c: 'c2' },
+      { label: 'Matches', value: n(totals.matches),
+        note: range === 'all' && exportOv ? `${pct(totals.matches, totals.likes)} of likes · ${n(exportOv.inFile)} still in your export` : `${pct(totals.matches, totals.likes)} of your likes`,
+        icon: 'heart', c: 'c2' },
       { label: 'Swipes', value: n(swipes), note: `${n(Math.round(swipes / Math.max(activeDays, 1)))} per active day`, icon: 'swipe', c: 'c1' },
       { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} likes, ${n(totals.passes)} passes`, icon: 'percent', c: 'c3' },
       { label: 'Swipes per match', value: totals.matches ? n(Math.round(swipes / totals.matches)) : '–', note: 'right and left swipes combined', icon: 'target', c: 'c1' },
@@ -236,7 +242,7 @@
       title: data.isDemo ? 'Sample dashboard' : (range === 'all' ? 'All of your swiping' : periodLabel),
       hero: { value: n(totals.matches), label: totals.matches === 1 ? 'match' : 'matches' },
       profile: profileChips(),
-      kpis, charts,
+      kpis, charts, exportOv,
       openers: { words: topWords, note: openersNote },
       topDays,
       table: { labels: mLabels, vals: mVals, extras: extraMonthly },
@@ -358,8 +364,10 @@
     const msgs = all.reduce((s, c) => s + c.messages.length, 0);
     const withMsgs = all.filter(c => c.messages.length).length;
     const longest = all.reduce((m, c) => Math.max(m, c.messages.length), 0);
+    const ov = computeExportOverview();
     $('convoSummary').textContent = all.length
-      ? `${n(all.length)} matches in your export · ${n(withMsgs)} (${pct(withMsgs, all.length)}) with messages from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages`
+      ? `${n(all.length)} matches still in your export · ${n(withMsgs)} (${pct(withMsgs, all.length)}) with messages from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages.` +
+        (ov.removed > 0 ? ` Your activity log counts ${n(ov.total)} matches all-time; Tinder leaves out the ${n(ov.removed)} that were unmatched or whose accounts were deleted.` : '')
       : 'Your export has no conversations.';
     drawConvoList();
   }
@@ -408,6 +416,89 @@
   let searchTimer;
   $('convoSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { convoShown = CONVO_PAGE; drawConvoList(); }, 200); });
   $('convoMore').addEventListener('click', () => { convoShown += CONVO_PAGE; drawConvoList(); });
+
+  // ---------- About this export (always the whole file, ignores the period filter) ----------
+  let exportOv = null;
+  function computeExportOverview() {
+    const dates = Object.keys(data.days).sort();
+    const sum = k => Object.values(data.days).reduce((s, d) => s + d[k], 0);
+    const total = sum('matches');
+    const inFile = data.conversations.length;
+    const removed = Math.max(0, total - inFile);
+    const withMsgs = data.conversations.filter(c => c.messages.length).length;
+    const msgsInFile = data.conversations.reduce((s, c) => s + c.messages.length, 0);
+    const first = dates[0], last = dates[dates.length - 1];
+    const spanDays = first ? Math.round((new Date(last) - new Date(first)) / 86400000) + 1 : 0;
+    const activeDays = Object.values(data.days).filter(v => v.opens || v.likes || v.passes).length;
+    const u = data.user || {};
+    const created = u.create_date && /^\d{4}-\d{2}-\d{2}/.test(String(u.create_date)) ? String(u.create_date).slice(0, 10) : null;
+    const secs = data.sections || {};
+    const findKey = re => Object.keys(secs).find(k => re.test(k));
+    const photosKey = findKey(/^photos$/i);
+    const photos = photosKey && Array.isArray(secs[photosKey]) ? secs[photosKey].length : null;
+    const purchKey = findKey(/^purchases$/i);
+    let purchases = null;
+    if (purchKey && secs[purchKey] && typeof secs[purchKey] === 'object') {
+      const pv = secs[purchKey];
+      purchases = Array.isArray(pv) ? pv.length : Object.values(pv).reduce((s, v) => s + (Array.isArray(v) ? v.length : 0), 0);
+    }
+    const spanText = spanDays >= 730 ? `${(spanDays / 365.25).toFixed(1)} years` : spanDays >= 60 ? `${Math.round(spanDays / 30.44)} months` : `${spanDays} days`;
+    const stats = [
+      { label: 'Data covers', value: first ? `${fmtDate(first)} – ${fmtDate(last)}` : '–', note: first ? `${spanText} · ${n(activeDays)} active days` : '', small: true },
+      created ? { label: 'Account created', value: fmtDate(created), note: 'from your profile' , small: true } : null,
+      data.fileInfo ? { label: 'File', value: data.fileInfo.name, note: fmtBytes(data.fileInfo.size), small: true } : null,
+      { label: 'Matches all-time', value: n(total), note: 'from your daily activity log' },
+      { label: 'Still in your export', value: n(inFile), note: total ? `${pct(inFile, total)} of all-time matches` : 'match entries in the file' },
+      { label: 'Unmatched or removed', value: n(removed), note: total ? `${pct(removed, total)} of all-time matches` : '' },
+      { label: 'Conversations you started', value: n(withMsgs), note: inFile ? `${pct(withMsgs, inFile)} of matches still in the file` : '' },
+      { label: 'Messages in the file', value: n(msgsInFile), note: `${n(sum('sent'))} sent in your activity log` },
+      { label: 'Messages received', value: n(sum('received')), note: 'from your activity log' },
+      photos != null ? { label: 'Photos', value: n(photos), note: 'listed in the file' } : null,
+      purchases != null ? { label: 'Purchases', value: n(purchases), note: 'subscriptions and add-ons' } : null,
+    ].filter(Boolean);
+    const sectionNames = ['Usage', 'Messages', 'User', ...Object.keys(secs)];
+    const note = total
+      ? (removed > 0
+        ? `Your activity log recorded ${n(total)} matches, but only ${n(inFile)} are still listed in the file. Tinder removes a match from the export when either of you unmatches or an account is deleted, so the Overview count is higher.`
+        : `All ${n(total)} matches from your activity log are still listed in the file.`)
+      : 'Your activity log has no matches.';
+    return { total, inFile, removed, stats, sectionNames, note,
+      bar: total ? [{ label: 'Still in your export', value: Math.min(inFile, total), pct: Math.min(inFile, total) / total },
+        { label: 'Unmatched or removed', value: removed, pct: removed / total }] : [] };
+  }
+
+  function renderExportOverview() {
+    const ov = exportOv;
+    $('ovGrid').replaceChildren(...ov.stats.map(s => {
+      const d = document.createElement('div'); d.className = 'ov-stat' + (s.small ? ' small' : '');
+      d.append(textEl('div', s.label, 'kpi-label'), textEl('div', s.value, 'ov-value'), textEl('div', s.note || '', 'kpi-note'));
+      return d;
+    }));
+    $('ovMatchNote').textContent = ov.note;
+    const colors = ['var(--series-1)', 'var(--series-2)'];
+    const bar = $('ovBar');
+    bar.replaceChildren(...ov.bar.filter(b => b.value > 0).map((b, i) => {
+      const seg = document.createElement('div'); seg.className = 'ov-seg';
+      seg.style.width = (b.pct * 100).toFixed(2) + '%';
+      seg.style.background = colors[ov.bar.indexOf(b)];
+      seg.title = `${b.label}: ${n(b.value)} (${pct(b.value, ov.total)})`;
+      if (b.pct >= 0.12) seg.textContent = pct(b.value, ov.total);
+      return seg;
+    }));
+    bar.hidden = !ov.bar.length;
+    $('ovLegend').replaceChildren(...ov.bar.map((b, i) => {
+      const span = document.createElement('span');
+      const sw = document.createElement('i'); sw.style.background = colors[i];
+      span.append(sw, `${b.label}: ${n(b.value)} (${pct(b.value, ov.total)})`);
+      return span;
+    }));
+    $('ovSections').replaceChildren(...ov.sectionNames.map(s => textEl('span', pretty(s), 'kv-chip')));
+  }
+
+  function fmtBytes(b) {
+    if (!b && b !== 0) return '';
+    return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+  }
 
   // ---------- Every other section of the export, rendered generically ----------
   function renderAllSections() {
