@@ -20,7 +20,9 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - A light / dark / automatic theme switch
 - A searchable browser of every conversation and message in the export
 - Every other section of the file (profile, Spotify, purchases, photos, campaigns, …) shown as-is
-- A period filter (all time, last 12 months, or a single year) and a monthly data table
+- A period filter: entire export, last 30 / 90 days, last 12 months, any year, or a custom date range
+- Section links in the header that highlight the section on screen
+- A monthly data table
 - **Export** as a multi-page PDF report or a single JPEG image, choosing exactly which sections to include
   (profile details are off by default). Exports are drawn on a canvas in the browser and saved directly to downloads.
 

@@ -68,9 +68,17 @@
     $('uploadView').hidden = false;
     $('resetBtn').hidden = true;
     $('exportBtnTop').hidden = true;
+    $('topNav').hidden = true;
     window.scrollTo(0, 0);
   });
-  $('rangeSelect').addEventListener('change', e => { range = e.target.value; render(); });
+  $('rangeSelect').addEventListener('change', e => {
+    range = e.target.value;
+    $('customRange').hidden = range !== 'custom';
+    render();
+  });
+  for (const id of ['rangeFrom', 'rangeTo']) {
+    $(id).addEventListener('change', () => { if (range === 'custom') render(); });
+  }
   $('exportBtn').addEventListener('click', () => ExportReport.open());
   $('exportBtnTop').addEventListener('click', () => ExportReport.open());
 
@@ -102,10 +110,18 @@
     data.isDemo = isDemo;
     const years = [...new Set(dates.map(d => d.slice(0, 4)))];
     const sel = $('rangeSelect');
-    sel.innerHTML = '<option value="all">All time</option><option value="12m">Last 12 months</option>' +
-      years.reverse().map(y => `<option value="${y}">${y}</option>`).join('');
+    sel.innerHTML = '<option value="all">Entire export</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option>' +
+      '<option value="12m">Last 12 months</option>' +
+      years.reverse().map(y => `<option value="${y}">${y}</option>`).join('') +
+      '<option value="custom">Custom range…</option>';
     range = 'all';
     sel.value = 'all';
+    // Custom range is limited to the dates in this export
+    const f = $('rangeFrom'), t = $('rangeTo');
+    f.min = t.min = dates[0]; f.max = t.max = dates[dates.length - 1];
+    f.value = dates[0]; t.value = dates[dates.length - 1];
+    $('customRange').hidden = true;
+    $('topNav').hidden = false;
 
     $('uploadView').hidden = true;
     $('dashView').hidden = false;
@@ -122,15 +138,30 @@
   }
 
   // ---------- Filtering ----------
-  function inRange(dateStr) {
-    if (range === 'all') return true;
-    if (range === '12m') {
-      const last = Object.keys(data.days).sort().pop();
-      const cut = new Date(last + 'T00:00:00');
-      cut.setFullYear(cut.getFullYear() - 1);
-      return dateStr > localDateKey(cut);
+  // Returns [from, to] (inclusive YYYY-MM-DD) for the selected period, or null for the entire export.
+  // Relative ranges count back from the last day in the export, not from today.
+  function bounds() {
+    if (range === 'all') return null;
+    const last = Object.keys(data.days).sort().pop();
+    const back = (days, months) => {
+      const d = new Date(last + 'T00:00:00');
+      if (months) d.setMonth(d.getMonth() - months); else d.setDate(d.getDate() - days);
+      d.setDate(d.getDate() + 1);
+      return [localDateKey(d), last];
+    };
+    if (range === '30d') return back(30);
+    if (range === '90d') return back(90);
+    if (range === '12m') return back(0, 12);
+    if (range === 'custom') {
+      let a = $('rangeFrom').value || $('rangeFrom').min, b = $('rangeTo').value || $('rangeTo').max;
+      if (a > b) [a, b] = [b, a];
+      return [a, b];
     }
-    return dateStr.startsWith(range);
+    return [range + '-01-01', range + '-12-31'];
+  }
+  let curBounds = null;
+  function inRange(dateStr) {
+    return !curBounds || (dateStr >= curBounds[0] && dateStr <= curBounds[1]);
   }
 
   function localDateKey(dt) {
@@ -139,6 +170,7 @@
 
   // ---------- Compute everything for the current period ----------
   function compute() {
+    curBounds = bounds();
     const days = Object.entries(data.days).filter(([d]) => inRange(d)).sort((a, b) => a[0] < b[0] ? -1 : 1);
     const totals = TinderParse.blankDay();
     for (const [, v] of days) for (const k in totals) totals[k] += v[k];
@@ -171,7 +203,9 @@
     const activeDays = days.filter(([, v]) => v.opens || v.likes || v.passes).length;
     const swipes = totals.likes + totals.passes;
     const firstDay = days[0]?.[0], lastDay = days[days.length - 1]?.[0];
-    const periodLabel = $('rangeSelect').selectedOptions[0]?.textContent || 'All time';
+    const periodLabel = range === 'custom' && curBounds
+      ? `${fmtDate(curBounds[0])} – ${fmtDate(curBounds[1])}`
+      : ($('rangeSelect').selectedOptions[0]?.textContent || 'Entire export');
 
     // Most important stats: a big percentage with the real numbers underneath
     const spanDays = firstDay ? Math.round((new Date(lastDay) - new Date(firstDay)) / 86400000) + 1 : 0;
@@ -296,8 +330,10 @@
       isDemo: data.isDemo,
       story, takeaways: tk,
       periodLabel,
-      sub: firstDay ? `${fmtDate(firstDay)} – ${fmtDate(lastDay)} · ${activeDays.toLocaleString()} active days` : 'No activity in this period',
-      title: data.isDemo ? 'Sample dashboard' : (range === 'all' ? 'All of your swiping' : periodLabel),
+      sub: curBounds
+        ? `${fmtDate(curBounds[0])} – ${fmtDate(curBounds[1])} · ${activeDays.toLocaleString()} active days`
+        : (firstDay ? `${fmtDate(firstDay)} – ${fmtDate(lastDay)} · ${activeDays.toLocaleString()} active days` : 'No activity in this period'),
+      title: data.isDemo ? 'Sample dashboard' : (range === 'all' ? 'Your entire export' : periodLabel),
       headline,
       profile: profileChips(),
       kpis, charts, exportOv,
@@ -649,6 +685,29 @@
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (data) render(); });
+
+  // ---------- Highlight the section currently on screen in the header nav ----------
+  const navLinks = [...document.querySelectorAll('#topNav a')];
+  let navTick = false;
+  function updateActiveNav() {
+    navTick = false;
+    if ($('dashView').hidden) return;
+    const line = window.innerHeight / 3;
+    let cur = null;
+    for (const a of navLinks) {
+      const t = document.getElementById(a.getAttribute('href').slice(1));
+      if (t && t.offsetParent && t.getBoundingClientRect().top < line) cur = a;
+    }
+    for (const a of navLinks) a.classList.toggle('active', a === cur);
+    // keep the active link visible in the scrollable phone nav without moving the page
+    const nav = $('topNav');
+    if (cur && nav.scrollWidth > nav.clientWidth) {
+      const l = cur.offsetLeft - nav.offsetLeft, r = l + cur.offsetWidth;
+      if (l < nav.scrollLeft) nav.scrollLeft = l - 8;
+      else if (r > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = r - nav.clientWidth + 8;
+    }
+  }
+  window.addEventListener('scroll', () => { if (!navTick) { navTick = true; requestAnimationFrame(updateActiveNav); } }, { passive: true });
 
   // ---------- Theme: automatic -> light -> dark ----------
   const THEME_KEY = 'swipestats.theme';
