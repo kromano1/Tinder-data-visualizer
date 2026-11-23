@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swipe Stats</title>
+  <meta name="description" content="Visualize your Tinder data export privately in your browser. Your file never leaves your device.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e34948'/><path d='M9 21l5-6 4 4 5-8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true"></span>
+        Swipe Stats
+      </a>
+      <nav class="header-actions">
+        <button id="resetBtn" class="btn btn-ghost" hidden>Load another file</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Upload screen -->
+    <section id="uploadView" class="wrap upload-view">
+      <div class="hero">
+        <h1>See what your swipes say about you</h1>
+        <p class="lede">Drop in your Tinder data export to see your swipes, matches, conversations and habits as charts.
+          Everything runs in your browser. Your data is never uploaded anywhere.</p>
+      </div>
+
+      <label id="dropZone" class="drop-zone" for="fileInput">
+        <input id="fileInput" type="file" accept=".json,.zip,application/json,application/zip">
+        <svg class="drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0l-5 5m5-5l5 5M4 20h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="drop-title">Drop <code>data.json</code> or the export <code>.zip</code> here</span>
+        <span class="drop-sub">or click to choose a file</span>
+      </label>
+      <p id="uploadError" class="error" role="alert" hidden></p>
+
+      <div class="upload-alt">
+        <button id="demoBtn" class="btn">Try it with sample data</button>
+      </div>
+
+      <div class="howto">
+        <h2>How to get your data</h2>
+        <ol>
+          <li>Go to <strong>account.gotinder.com/data</strong> and sign in.</li>
+          <li>Request your data. Tinder emails you a download link, usually within a few days.</li>
+          <li>Download the <code>.zip</code> file and drop it above. You can also drop just the <code>data.json</code> file inside it.</li>
+        </ol>
+        <p class="fine">Swipe Stats is an independent project and is not affiliated with Tinder or Match Group.</p>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashView" class="wrap dash-view" hidden>
+      <div class="dash-head">
+        <div>
+          <h1 id="dashTitle">Your Tinder, in numbers</h1>
+          <p id="dashSub" class="muted"></p>
+        </div>
+        <div class="filters">
+          <label for="rangeSelect" class="filter-label">Period</label>
+          <select id="rangeSelect"></select>
+        </div>
+      </div>
+
+      <div id="profile" class="profile-strip"></div>
+
+      <h2 class="section-title">Overview</h2>
+      <div id="kpis" class="kpi-grid"></div>
+
+      <h2 class="section-title">Swiping</h2>
+      <div class="grid-2">
+        <figure class="card chart-card wide">
+          <figcaption><h3>Likes and passes per month</h3></figcaption>
+          <div class="legend" data-legend="swipes"></div>
+          <div class="chart-box"><canvas id="chSwipes"></canvas></div>
+        </figure>
+        <figure class="card chart-card">
+          <figcaption><h3>Like rate per month</h3><p class="muted">Share of swipes that were right swipes</p></figcaption>
+          <div class="chart-box"><canvas id="chLikeRate"></canvas></div>
+        </figure>
+        <figure class="card chart-card">
+          <figcaption><h3>Average swipes by weekday</h3></figcaption>
+          <div class="chart-box"><canvas id="chWeekday"></canvas></div>
+        </figure>
+      </div>
+
+      <h2 class="section-title">Matching</h2>
+      <div class="grid-2">
+        <figure class="card chart-card">
+          <figcaption><h3>Matches per month</h3></figcaption>
+          <div class="chart-box"><canvas id="chMatches"></canvas></div>
+        </figure>
+        <figure class="card chart-card">
+          <figcaption><h3>Match rate per month</h3><p class="muted">Matches divided by likes sent</p></figcaption>
+          <div class="chart-box"><canvas id="chMatchRate"></canvas></div>
+        </figure>
+      </div>
+
+      <h2 class="section-title">Messaging</h2>
+      <div class="grid-2">
+        <figure class="card chart-card wide">
+          <figcaption><h3>Messages sent and received per month</h3></figcaption>
+          <div class="legend" data-legend="messages"></div>
+          <div class="chart-box"><canvas id="chMessages"></canvas></div>
+        </figure>
+        <figure class="card chart-card">
+          <figcaption><h3>When you send messages</h3><p class="muted">By hour of day, in your local time</p></figcaption>
+          <div class="chart-box"><canvas id="chHour"></canvas></div>
+        </figure>
+        <figure class="card chart-card">
+          <figcaption><h3>Conversation length</h3><p class="muted">Messages you sent per match</p></figcaption>
+          <div class="chart-box"><canvas id="chConvo"></canvas></div>
+        </figure>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Your favorite opening words</h3>
+          <p class="muted">Most common words in your first message to each match</p>
+          <div id="openerWords" class="word-cloud"></div>
+        </div>
+        <div class="card">
+          <h3>Your most active days</h3>
+          <p class="muted">Days with the most swipes</p>
+          <table class="data-table" id="topDays"></table>
+        </div>
+      </div>
+
+      <h2 class="section-title">App usage</h2>
+      <div class="grid-2">
+        <figure class="card chart-card wide">
+          <figcaption><h3>App opens per month</h3></figcaption>
+          <div class="chart-box"><canvas id="chOpens"></canvas></div>
+        </figure>
+      </div>
+
+      <details class="card table-details">
+        <summary>Show monthly data as a table</summary>
+        <div class="table-scroll"><table class="data-table" id="monthTable"></table></div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Your file is processed locally in your browser and is never sent to a server.
+        Not affiliated with Tinder or Match Group.</p>
+    </div>
+  </footer>
+
+  <script src="js/vendor/chart.umd.js"></script>
+  <script src="js/vendor/jszip.min.js"></script>
+  <script src="js/parse.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

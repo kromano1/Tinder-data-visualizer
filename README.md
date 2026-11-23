@@ -1,0 +1,37 @@
+# Swipe Stats
+
+A static website that turns your Tinder data export into charts and stats. Everything runs in the
+visitor's browser: the export file is read locally with JavaScript and is never uploaded to a server.
+
+## What it shows
+
+- Totals: matches, swipes, like rate, swipes per match, app opens, messages, conversations started, Super Likes
+- Likes and passes per month, like rate per month, average swipes by weekday
+- Matches per month and match rate per month
+- Messages sent and received per month, the hours you send messages, conversation lengths
+- Your most common opening words, and your busiest swiping days
+- A period filter (all time, last 12 months, or a single year) and a monthly data table
+
+It accepts either the `.zip` Tinder emails you or the `data.json` file inside it.
+A **Try it with sample data** button shows a demo with generated data.
+
+## Hosting
+
+There's no build step and no server code. Upload the whole folder (`index.html`, `css/`, `js/`) to any
+static host:
+
+- **GitHub Pages:** Settings → Pages → Deploy from a branch → choose the branch and `/ (root)`.
+- **Netlify / Cloudflare Pages / Vercel:** drag and drop the folder, or connect the repo with no build command
+  and the repo root as the output directory.
+- **Any web host:** upload the files over FTP/SFTP into your public web folder.
+
+To try it locally, run `python3 -m http.server` in this folder and open http://localhost:8000.
+
+Chart.js 4.4.1 and JSZip 3.10.1 are bundled in `js/vendor/` (MIT licensed; see the license files there),
+so the site doesn't depend on any external CDN.
+
+## Getting your Tinder data
+
+Request it at account.gotinder.com/data. Tinder emails a download link, usually within a few days.
+
+Not affiliated with Tinder or Match Group.
