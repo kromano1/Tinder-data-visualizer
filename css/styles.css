@@ -260,6 +260,16 @@ svg { display: block; }
 .top-nav a.active { background: color-mix(in srgb, var(--brand-a) 12%, transparent); color: var(--brand-a); }
 .section-title { scroll-margin-top: 150px; }
 .custom-range { display: flex; gap: 8px; flex-wrap: wrap; }
+.match-mode, .period-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.seg-toggle { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+.seg-toggle button {
+  appearance: none; border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: .88rem; font-weight: 650;
+  padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap;
+}
+.seg-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm), 0 0 0 1px var(--border); }
+.seg-toggle button:focus-visible { outline: 2px solid var(--brand-a); outline-offset: 1px; }
+.mode-note { margin: 0; font-size: .84rem; color: var(--text-3); max-width: 420px; line-height: 1.4; }
+.mode-note b { color: var(--text-2); }
 .date-field { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--text-2); font-weight: 600; }
 .date-field input {
   font: inherit; font-size: .9rem; font-weight: 600; padding: 7px 10px; border-radius: 12px; border: 1px solid var(--border);

@@ -20,6 +20,8 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - A light / dark / automatic theme switch
 - A searchable browser of every conversation and message in the export
 - Every other section of the file (profile, Spotify, purchases, photos, campaigns, …) shown as-is
+- A matches switch: "Still in export" (default; counts matches still listed in the file and shows the entire export)
+  or "All-time log" (counts every logged match and enables the period filter)
 - A period filter: entire export, last 30 / 90 days, last 12 months, any year, or a custom date range
 - Section links in the header that highlight the section on screen
 - A monthly data table

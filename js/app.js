@@ -46,6 +46,11 @@
 
   let data = null;
   let range = 'all';
+  // How matches are counted: 'export' = matches still listed in the file (default), 'log' = all-time activity log
+  const MODE_KEY = 'swipestats.matchMode';
+  let matchMode = 'export';
+  try { matchMode = localStorage.getItem(MODE_KEY) === 'log' ? 'log' : 'export'; } catch (e) { /* storage unavailable */ }
+  const exportMode = () => matchMode === 'export' && data && data.conversations.length > 0;
   let view = null;
 
   // ---------- Upload ----------
@@ -74,6 +79,23 @@
   $('rangeSelect').addEventListener('change', e => {
     range = e.target.value;
     $('customRange').hidden = range !== 'custom';
+    render();
+  });
+  function applyMatchModeUI() {
+    const hasFile = data && data.conversations.length > 0;
+    $('matchMode').hidden = !hasFile;
+    const ex = exportMode();
+    for (const b of document.querySelectorAll('#matchMode button')) b.setAttribute('aria-pressed', String(b.dataset.mode === (ex ? 'export' : 'log')));
+    $('modeNote').hidden = !ex;
+    $('periodGroup').hidden = ex;
+    if (ex) { range = 'all'; $('rangeSelect').value = 'all'; $('customRange').hidden = true; }
+  }
+  $('matchMode').addEventListener('click', e => {
+    const b = e.target.closest('button[data-mode]');
+    if (!b || !data || b.dataset.mode === matchMode) return;
+    matchMode = b.dataset.mode;
+    try { localStorage.setItem(MODE_KEY, matchMode); } catch (err) { /* storage unavailable */ }
+    applyMatchModeUI();
     render();
   });
   for (const id of ['rangeFrom', 'rangeTo']) {
@@ -122,6 +144,7 @@
     f.value = dates[0]; t.value = dates[dates.length - 1];
     $('customRange').hidden = true;
     $('topNav').hidden = false;
+    applyMatchModeUI();
 
     $('uploadView').hidden = true;
     $('dashView').hidden = false;
@@ -213,10 +236,14 @@
     const msgTotal = totals.sent + totals.received;
     const questionsN = withMsgs.filter(c => c.messages[0].text.includes('?')).length;
     const allTime = range === 'all' && exportOv && exportOv.total;
+    // The match count every match-based percentage uses
+    const ex = exportMode();
+    const M = ex ? data.conversations.length : totals.matches;
+    const mWord = ex ? 'matches still in your export' : 'matches';
     // Matches in the file have no date, so for a period compare against the matches made in that period
     const msgBase = range === 'all' ? convos.length : Math.max(totals.matches, withMsgs.length);
     const headline = [
-      { label: 'Match rate', value: pct(totals.matches, totals.likes), note: `${n(totals.matches)} matches from ${n(totals.likes)} likes` },
+      { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} ${ex ? 'matches in your export' : 'matches'} from ${n(totals.likes)} likes` },
       { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
       { label: 'Matches you messaged', value: pct(withMsgs.length, msgBase), note: `${n(withMsgs.length)} of ${n(msgBase)} matches` },
       allTime
@@ -228,7 +255,7 @@
         ? { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received`, icon: 'chat', c: 'c2' }
         : { label: 'Openers with a question', value: pct(questionsN, withMsgs.length), note: `${n(questionsN)} of ${n(withMsgs.length)} first messages`, icon: 'quote', c: 'c2' },
       { label: 'Active days', value: pct(activeDays, spanDays), note: `${n(activeDays)} of ${n(spanDays)} days · ${n(totals.opens)} app opens`, icon: 'calendar', c: 'c1' },
-      { label: 'Days with a match', value: pct(matchDays, activeDays), note: `${n(matchDays)} of ${n(activeDays)} active days`, icon: 'heart', c: 'c3' },
+      { label: 'Days with a match', value: pct(matchDays, activeDays), note: `${n(matchDays)} of ${n(activeDays)} active days${ex ? ' (activity log)' : ''}`, icon: 'heart', c: 'c3' },
       { label: 'Super Likes', value: pct(totals.superlikes, totals.likes), note: `${n(totals.superlikes)} of your ${n(totals.likes)} likes`, icon: 'star', c: 'c1' },
     ];
 
@@ -296,12 +323,12 @@
     const hourName = h => h === 0 ? '12 am' : h < 12 ? `${h} am` : h === 12 ? '12 pm' : `${h - 12} pm`;
     const mMatches = mVals.map(v => v.matches);
     const story = [];
-    if (totals.matches && totals.likes) story.push({ icon: 'heart', c: 'c2', big: `1 in ${n(Math.max(1, Math.round(totals.likes / totals.matches)))}`, text: 'of your likes turned into a match' });
+    if (M && totals.likes) story.push({ icon: 'heart', c: 'c2', big: `1 in ${n(Math.max(1, Math.round(totals.likes / M)))}`, text: ex ? 'of your likes became a match that\'s still in your export' : 'of your likes turned into a match' });
     if (swipes) story.push({ icon: 'swipe', c: 'c1', big: pct(totals.likes, swipes), text: `of profiles got a right swipe from you. You passed on the other ${pct(totals.passes, swipes)}.` });
     const wdTop = peakIdx(wdAvg);
     if (wdTop >= 0) story.push({ icon: 'calendar', c: 'c3', big: FULL_DAYS[wdTop] + 's', text: `are your busiest swiping days, with ${pct(wdAvg[wdTop], wdAvg.reduce((a, b) => a + b, 0))} of a typical week's swipes` });
     const bestM = peakIdx(mMatches);
-    if (bestM >= 0) story.push({ icon: 'trophy', c: 'c2', big: fullM(bestM), text: `was your best month: ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total` });
+    if (bestM >= 0) story.push({ icon: 'trophy', c: 'c2', big: fullM(bestM), text: `was your best month: ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of ${ex ? 'all logged matches' : 'the total'}` });
     if (msgBase) story.push({ icon: 'chat', c: 'c1', big: pct(withMsgs.length, msgBase), text: `of your matches got a message from you. ${n(msgBase - withMsgs.length)} never heard from you.` });
     const hTop = peakIdx(hours);
     if (hTop >= 0) story.push({ icon: 'clock', c: 'c3', big: hourName(hTop), text: `is your favorite time to text: ${pct(hours[hTop], sentMsgs.length)} of your messages go out in that hour` });
@@ -312,6 +339,7 @@
     if (longest) story.push({ icon: 'ruler', c: 'c3', big: n(longest), text: `messages in your longest conversation. The average is ${n(Math.round(sentMsgs.length / withMsgs.length))}.` });
     else if (totals.opens) story.push({ icon: 'phone', c: 'c3', big: n(Math.round(totals.opens / Math.max(activeDays, 1))), text: 'app opens on a typical active day' });
 
+    const i0 = arr => arr.some(v => v != null);
     const avgOf = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
     const tk = {};
     { const i = peakIdx(mVals.map(v => v.likes + v.passes)); tk.swipes = i >= 0 ? `You swiped most in ${fullM(i)} (${n(mVals[i].likes + mVals[i].passes)} swipes). Overall you liked ${pct(totals.likes, swipes)} of profiles.` : 'No swipes in this period.'; }
@@ -319,7 +347,9 @@
     { const lo = lowIdx(wdAvg.map(v => v || null)); tk.weekday = wdTop >= 0 ? `${FULL_DAYS[wdTop]} is your busiest day${lo >= 0 && lo !== wdTop ? ` and ${FULL_DAYS[lo]} the quietest` : ''}.` : 'No swipes in this period.'; }
     { const arr = mVals.map(v => v.superlikes), i = peakIdx(arr); tk.super = i >= 0 ? `You used ${n(totals.superlikes)} Super Likes, the most in ${fullM(i)} (${n(arr[i])}).` : 'You didn\'t use any Super Likes in this period.'; }
     tk.matches = bestM >= 0 ? `Your best month was ${fullM(bestM)} with ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total.` : 'No matches in this period.';
+    if (ex && totals.matches > M) tk.matches += ` Monthly counts come from the activity log, which still counts the ${n(totals.matches - M)} matches later removed from your export.`;
     { const i = peakIdx(matchRate), a = avgOf(matchRate); tk.matchRate = i >= 0 ? `On average ${Charts.fmtPct(a)} of your likes matched each month. ${fullM(i)} was your luckiest at ${Charts.fmtPct(matchRate[i])}.` : 'No likes in this period.'; }
+    if (ex && i0(matchRate)) tk.matchRate += ` These monthly rates use the activity log; counting only matches still in your export, your overall rate is ${pct(M, totals.likes)}.`;
     { const i = peakIdx(mVals.map(v => v.sent + v.received)); tk.messages = i >= 0 ? `You sent ${n(totals.sent)} messages and received ${n(totals.received)}. ${fullM(i)} was your chattiest month.` : 'No messages in this period.'; }
     { const night = hours.slice(21).reduce((a, b) => a + b, 0) + hours.slice(0, 3).reduce((a, b) => a + b, 0); tk.hour = hTop >= 0 ? `You text most around ${hourName(hTop)}. ${pct(night, sentMsgs.length)} of your messages are sent between 9 pm and 3 am.` : 'No messages in this period.'; }
     { const none = convoCounts[0], longC = convoCounts.slice(4).reduce((a, b) => a + b, 0), tot = convoCounts.reduce((a, b) => a + b, 0); tk.convo = tot ? `${pct(none, tot)} of matches never got a message, and ${pct(longC, tot)} of conversations went past 10 messages.` : 'No matches in this period.'; }
