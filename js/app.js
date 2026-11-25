@@ -14,7 +14,7 @@
   // Labels on every bar/point show a percentage: the rate itself, or that point's share of the total.
   const BASE_CHARTS = [
     { key: 'swipes', id: 'chSwipes', group: 'Swiping', title: 'Likes and passes per month', sub: 'Labels show the share of each month\'s swipes that were likes', wide: true },
-    { key: 'likeRate', id: 'chLikeRate', group: 'Swiping', title: 'Like rate per month', sub: 'Share of swipes that were right swipes' },
+    { key: 'likeRate', id: 'chLikeRate', group: 'Swiping', title: 'Your like rate per month', sub: 'Share of swipes that were right swipes' },
     { key: 'weekday', id: 'chWeekday', group: 'Swiping', title: 'Average swipes by weekday', sub: 'On days you swiped · labels show share of the week' },
     { key: 'super', id: 'chSuper', group: 'Swiping', title: 'Super Likes per month', sub: 'Labels show each month\'s share of your Super Likes', wide: true },
     { key: 'matches', id: 'chMatches', group: 'Matching', title: 'Matches per month', sub: 'Labels show each month\'s share of your matches' },
@@ -215,12 +215,16 @@
     const matchDays = days.filter(([, v]) => v.matches > 0).length;
     const msgTotal = totals.sent + totals.received;
     const questionsN = withMsgs.filter(c => c.messages[0].text.includes('?')).length;
+    const likesRecvKey = Object.keys(extraMonthly).find(k => /^(likes?_received|received_likes|swipes_likes_received|likes_you)$/i.test(k));
+    const likesRecv = likesRecvKey ? extraMonthly[likesRecvKey].reduce((a, b) => a + b, 0) : 0;
     // Every match-based figure uses all matches from the Usage section
     const M = totals.matches;
     const perMatch = totals.matches ? (totals.sent / totals.matches).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '–';
     const headline = [
       { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} matches from ${n(totals.likes)} likes` },
-      { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
+      { label: 'Your like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
+      // Tinder's export has no "likes received" count today; show it only if a file actually includes one
+      ...(likesRecvKey ? [{ label: 'Likes received', value: n(likesRecv), note: totals.matches && likesRecv ? `${pct(totals.matches, likesRecv)} became matches` : 'people who liked you' }] : []),
       // conversations with a message from you in the period, out of the period's matches (Usage)
       { label: 'Matches you messaged', value: pct(Math.min(withMsgs.length, totals.matches), totals.matches), note: `${n(Math.min(withMsgs.length, totals.matches))} of ${n(totals.matches)} matches` },
       // Usage.messages_sent compared with Usage.matches
@@ -256,7 +260,7 @@
       swipes: { type: 'bar', labels: mLabels, opts: { stacked: true }, pctNote: 'of month',
         datasets: [{ label: 'Likes', data: mVals.map(v => v.likes) }, { label: 'Passes', data: mVals.map(v => v.passes) }],
         pct: [likeRate, mVals.map(v => of(v.passes, v.likes + v.passes))] },
-      likeRate: { type: 'line', labels: mLabels, opts: { percent: true }, datasets: [{ label: 'Like rate', data: likeRate }], pct: [likeRate] },
+      likeRate: { type: 'line', labels: mLabels, opts: { percent: true }, datasets: [{ label: 'Your like rate', data: likeRate }], pct: [likeRate] },
       weekday: { type: 'bar', labels: WEEKDAYS, pctNote: 'of week', datasets: [{ label: 'Avg swipes', data: wdAvg }], pct: [share(wdAvg)] },
       super: { type: 'bar', labels: mLabels, pctNote: 'of total', datasets: [{ label: 'Super Likes', data: mVals.map(v => v.superlikes) }], pct: [share(mVals.map(v => v.superlikes))] },
       matches: { type: 'bar', labels: mLabels, pctNote: 'of total', datasets: [{ label: 'Matches', data: mVals.map(v => v.matches) }], pct: [share(mVals.map(v => v.matches))] },
@@ -353,6 +357,7 @@
     $('dashTitle').textContent = view.title;
     $('dashSub').textContent = view.sub;
 
+    $('heroStats').dataset.count = view.headline.length;
     $('heroStats').replaceChildren(...view.headline.map(h => {
       const d = document.createElement('div'); d.className = 'hs';
       d.append(textEl('div', h.label, 'hs-label'), textEl('div', h.value, 'hs-big'), textEl('div', h.note, 'hs-note'));
