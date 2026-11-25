@@ -469,7 +469,8 @@
     const g = { M: 'Man', F: 'Woman', M_F: 'Everyone' };
     if (u.gender) chips.push(['Gender', String(g[u.gender] || u.gender)]);
     if (u.interested_in) chips.push(['Interested in', String({ M: 'Men', F: 'Women', M_F: 'Everyone' }[u.interested_in] || u.interested_in)]);
-    if (u.age_filter_min && u.age_filter_max) chips.push(['Age filter', `${u.age_filter_min}–${u.age_filter_max}`]);
+    // Tinder stores "no upper limit" as a very large max age (e.g. 1000)
+    if (u.age_filter_min && u.age_filter_max) chips.push(['Age filter', +u.age_filter_max >= 100 ? `${u.age_filter_min}+` : `${u.age_filter_min}–${u.age_filter_max}`]);
     if (u.city && u.city.name) chips.push(['City', String(u.city.name)]);
     return chips;
   }
@@ -548,7 +549,10 @@
         for (const m of c.messages) {
           const li = document.createElement('li');
           const t = document.createElement('time'); t.textContent = fmtDT(m.date, true);
-          const p = document.createElement('p'); p.textContent = m.text || '(no text, such as a GIF or sticker)';
+          const KIND = { gif: 'GIF', sticker: 'sticker', song: 'song', tombstone: 'deleted message', swipe_note: 'swipe note' };
+          const p = document.createElement('p');
+          p.textContent = m.text || `(${KIND[m.kind] || (m.kind ? m.kind.replace(/_/g, ' ') : 'no text')})`;
+          if (!m.text) p.className = 'msg-kind';
           if (q && m.text.toLowerCase().includes(q)) li.className = 'hit';
           li.append(t, p); ul.append(li);
         }
@@ -700,10 +704,24 @@
     const entries = Object.entries(v);
     for (const [k, x] of entries.slice(0, MAX_ITEMS)) {
       dl.append(textEl('dt', pretty(k)));
-      const dd = document.createElement('dd'); dd.append(renderValue(x, depth + 1)); dl.append(dd);
+      const dd = document.createElement('dd');
+      // 'name' is only personal at the top level of a section (nested names are cities, jobs, artists…)
+      if ((SENSITIVE.test(k) || (depth === 0 && /^name$/i.test(k))) && x != null && x !== '') dd.append(hiddenValue(x, depth));
+      else dd.append(renderValue(x, depth + 1));
+      dl.append(dd);
     }
     if (entries.length > MAX_ITEMS) dl.append(textEl('dd', `+${n(entries.length - MAX_ITEMS)} more fields`, 'kv-empty'));
     return dl;
+  }
+  // Personal identifiers Tinder includes in exports are hidden until the viewer asks to see them,
+  // so a screenshot of the page doesn't expose them by accident.
+  const SENSITIVE = /^(email|e_mail|phone|phone_id|phone_number|full_name|username|ip_address|ip|advertising_id|idfa|idfv|device_id|pos|coords|travel_pos|uid|partner_uid|share_id)$/i;
+  function hiddenValue(x, depth) {
+    const wrap = document.createElement('span'); wrap.className = 'sensitive';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'link reveal'; b.textContent = 'Hidden · show';
+    b.addEventListener('click', () => { wrap.replaceChildren(renderValue(x, depth + 1)); }, { once: true });
+    wrap.append(b);
+    return wrap;
   }
   function textEl(tag, txt, cls) { const e = document.createElement(tag); e.textContent = txt; if (cls) e.className = cls; return e; }
   function prettyScalar(x) {

@@ -446,6 +446,8 @@ select {
 .msgs li.hit { outline: 2px solid color-mix(in srgb, var(--brand-b) 60%, transparent); }
 .msgs time { display: block; font-size: .72rem; color: var(--text-3); margin-bottom: 2px; }
 .msgs p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msgs p.msg-kind { color: var(--text-3); font-style: italic; }
+.reveal { font-size: .86rem; }
 .more-btn { margin-top: 12px; }
 
 .all-sections { display: grid; gap: 12px; }

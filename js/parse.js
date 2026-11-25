@@ -79,6 +79,8 @@
       const msgs = (m.messages || []).map(x => ({
         text: decodeEntities(String(x.message ?? '')),
         date: parseDate(x.sent_date),
+        // non-text messages: GIFs carry a fixed_height URL; type can be e.g. 'gif', 'sticker', 'song', 'tombstone'
+        kind: x.fixed_height ? 'gif' : (x.type != null ? String(x.type).toLowerCase() : ''),
       })).filter(x => x.date);
       msgs.sort((a, b) => a.date - b.date);
       return { id: String(m.match_id || ''), messages: msgs };
