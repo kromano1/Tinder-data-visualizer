@@ -222,7 +222,7 @@
       { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} matches from ${n(totals.likes)} likes` },
       { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
       // Usage.messages_sent compared with Usage.matches
-      { label: 'Messages sent per match', value: perMatch, note: `${n(totals.sent)} messages sent · ${n(totals.matches)} matches` },
+      { label: 'Messages sent per match', value: perMatch, note: `${n(totals.sent)} sent · ${n(totals.matches)} matches` },
       { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received` },
     ];
     const kpis = [
@@ -561,15 +561,16 @@
     const listsAll = data.conversations.some(c => !c.messages.length);
     // Matches with no message from you in the export (unmessaged, plus any unmatched/deleted ones Tinder drops)
     const noMsg = Math.max(0, total - withMsgs);
+    const sentU = sum('sent'), recvU = sum('received');
     const stats = [
       { label: 'Data covers', value: first ? `${fmtDate(first)} – ${fmtDate(last)}` : '–', note: first ? `${spanText} · ${n(activeDays)} active days` : '', small: true },
       created ? { label: 'Account created', value: fmtDate(created), note: 'from your profile' , small: true } : null,
       data.fileInfo ? { label: 'File', value: data.fileInfo.name, note: fmtBytes(data.fileInfo.size), small: true } : null,
       { label: 'Matches', value: n(total), note: 'all matches, from Usage' },
       { label: 'Matches you messaged', value: n(withMsgs), note: total ? `${pct(withMsgs, total)} of all matches` : '' },
-      { label: 'Matched but no message', value: n(noMsg), note: total ? `${pct(noMsg, total)} of all matches${removed > 0 ? ' · includes unmatched or deleted' : ''}` : '' },
-      { label: 'Messages you sent', value: n(msgsInFile), note: `in Messages · Usage counts ${n(sum('sent'))}` },
-      { label: 'Messages received', value: n(sum('received')), note: 'counted in Usage (texts aren\'t included)' },
+      { label: 'Matched but no message', value: n(noMsg), note: total ? `${pct(noMsg, total)} of all matches` : '' },
+      { label: 'Messages you sent', value: n(sentU), note: `${pct(sentU, sentU + recvU)} of all messages` },
+      { label: 'Messages received', value: n(recvU), note: `${pct(recvU, sentU + recvU)} of all messages` },
       photos != null ? { label: 'Photos', value: n(photos), note: 'listed in the file' } : null,
       purchases != null ? { label: 'Purchases', value: n(purchases), note: 'subscriptions and add-ons' } : null,
     ].filter(Boolean);
