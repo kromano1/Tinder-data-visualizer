@@ -172,7 +172,9 @@
     }
     const statsY = 176 + (rows ? rows * 38 + 18 : 0);
     // headline boxes: labels and notes wrap to two lines instead of being cut off
-    const hsN = view.headline.length, hsBw = (CW - 72 - 12 * (hsN - 1)) / hsN;
+    // more than five stats: two rows so numbers stay large and readable
+    const hsN = view.headline.length, hsCols = hsN > 5 ? Math.ceil(hsN / 2) : hsN, hsRows = Math.ceil(hsN / hsCols);
+    const hsBw = (CW - 72 - 12 * (hsCols - 1)) / hsCols;
     const hsMeas = document.createElement('canvas').getContext('2d');
     const hsLines = view.headline.map(s => ({
       label: wrap(hsMeas, s.label, F(650, 12.5), hsBw - 28).slice(0, 2),
@@ -181,7 +183,7 @@
     const hsLabelRows = Math.max(...hsLines.map(l => l.label.length));
     const hsNoteRows = Math.max(...hsLines.map(l => l.note.length));
     const hsBoxH = 26 + hsLabelRows * 16 + 46 + hsNoteRows * 15 + 8;
-    const h = statsY + hsBoxH + 24;
+    const h = statsY + hsRows * hsBoxH + (hsRows - 1) * 12 + 24;
     return {
       h,
       draw(ctx) {
@@ -205,16 +207,19 @@
         text(ctx, fit(ctx, view.sub, F(500, 16), w - 72), x + 36, y + 150, F(500, 16), 'rgba(255,255,255,0.92)');
 
         // headline stats: label, big percentage, numbers underneath
-        const hs = view.headline, gap = 12, bw = (w - 72 - gap * (hs.length - 1)) / hs.length;
+        const hs = view.headline, gap = 12, bw = hsBw;
         hs.forEach((s, i) => {
-          const bx = x + 36 + i * (bw + gap), by = y + statsY;
+          const bx = x + 36 + (i % hsCols) * (bw + gap), by = y + statsY + Math.floor(i / hsCols) * (hsBoxH + gap);
           rr(ctx, bx, by, bw, hsBoxH, 16); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
           ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1; ctx.stroke();
           const L = hsLines[i];
           L.label.forEach((l, j) => text(ctx, l, bx + 14, by + 24 + j * 16, F(650, 12.5), 'rgba(255,255,255,0.92)'));
           const vy = by + 24 + hsLabelRows * 16 + 34;
-          const vs = hs.length > 4 ? 36 : 42;
-          text(ctx, fit(ctx, s.value, F(800, vs), bw - 28), bx + 14, vy, F(800, vs), '#fff');
+          // shrink the number until it fits rather than cutting it off
+          let vs = hsCols > 4 ? 36 : 42;
+          ctx.font = F(800, vs);
+          while (ctx.measureText(s.value).width > bw - 28 && vs > 20) { vs -= 2; ctx.font = F(800, vs); }
+          text(ctx, s.value, bx + 14, vy, F(800, vs), '#fff');
           L.note.forEach((l, j) => text(ctx, l, bx + 14, vy + 22 + j * 15, F(500, 11.5), 'rgba(255,255,255,0.92)'));
         });
 
