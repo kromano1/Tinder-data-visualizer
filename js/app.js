@@ -224,7 +224,6 @@
       { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} matches from ${n(totals.likes)} likes` },
       { label: 'Your like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
       // Tinder's export has no "likes received" count today; show it only if a file actually includes one
-      { label: 'Likes sent', value: n(totals.likes), note: `${n(totals.superlikes)} Super Likes · ${n(totals.passes)} passes` },
       ...(likesRecvKey ? [{ label: 'Likes received', value: n(likesRecv), note: totals.likes ? `${pct(likesRecv, totals.likes)} of the likes you sent` : 'people who liked you' }] : []),
       // conversations with a message from you in the period, out of the period's matches (Usage)
       { label: 'Matches you messaged', value: pct(Math.min(withMsgs.length, totals.matches), totals.matches), note: `${n(Math.min(withMsgs.length, totals.matches))} of ${n(totals.matches)} matches` },
