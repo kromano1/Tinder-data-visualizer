@@ -170,8 +170,18 @@
       chipLayout.push({ s: `${k}: ${v}`, x: cx, row: rows - 1, w });
       cx += w + 8;
     }
-    const statsY = 176 + (rows ? rows * 38 + 6 : 0);
-    const h = statsY + 132;
+    const statsY = 176 + (rows ? rows * 38 + 18 : 0);
+    // headline boxes: labels and notes wrap to two lines instead of being cut off
+    const hsN = view.headline.length, hsBw = (CW - 72 - 12 * (hsN - 1)) / hsN;
+    const hsMeas = document.createElement('canvas').getContext('2d');
+    const hsLines = view.headline.map(s => ({
+      label: wrap(hsMeas, s.label, F(650, 12.5), hsBw - 28).slice(0, 2),
+      note: wrap(hsMeas, s.note, F(500, 11.5), hsBw - 28).slice(0, 2),
+    }));
+    const hsLabelRows = Math.max(...hsLines.map(l => l.label.length));
+    const hsNoteRows = Math.max(...hsLines.map(l => l.note.length));
+    const hsBoxH = 26 + hsLabelRows * 16 + 46 + hsNoteRows * 15 + 8;
+    const h = statsY + hsBoxH + 24;
     return {
       h,
       draw(ctx) {
@@ -198,11 +208,14 @@
         const hs = view.headline, gap = 12, bw = (w - 72 - gap * (hs.length - 1)) / hs.length;
         hs.forEach((s, i) => {
           const bx = x + 36 + i * (bw + gap), by = y + statsY;
-          rr(ctx, bx, by, bw, 108, 16); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
+          rr(ctx, bx, by, bw, hsBoxH, 16); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
           ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1; ctx.stroke();
-          text(ctx, fit(ctx, s.label, F(650, 13), bw - 32), bx + 16, by + 26, F(650, 13), 'rgba(255,255,255,0.92)');
-          text(ctx, fit(ctx, s.value, F(800, 42), bw - 32), bx + 16, by + 70, F(800, 42), '#fff');
-          text(ctx, fit(ctx, s.note, F(500, 12.5), bw - 32), bx + 16, by + 94, F(500, 12.5), 'rgba(255,255,255,0.92)');
+          const L = hsLines[i];
+          L.label.forEach((l, j) => text(ctx, l, bx + 14, by + 24 + j * 16, F(650, 12.5), 'rgba(255,255,255,0.92)'));
+          const vy = by + 24 + hsLabelRows * 16 + 34;
+          const vs = hs.length > 4 ? 36 : 42;
+          text(ctx, fit(ctx, s.value, F(800, vs), bw - 28), bx + 14, vy, F(800, vs), '#fff');
+          L.note.forEach((l, j) => text(ctx, l, bx + 14, vy + 22 + j * 15, F(500, 11.5), 'rgba(255,255,255,0.92)'));
         });
 
         for (const c of chipLayout) {

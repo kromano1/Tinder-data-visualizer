@@ -221,6 +221,8 @@
     const headline = [
       { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} matches from ${n(totals.likes)} likes` },
       { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
+      // conversations with a message from you in the period, out of the period's matches (Usage)
+      { label: 'Matches you messaged', value: pct(Math.min(withMsgs.length, totals.matches), totals.matches), note: `${n(Math.min(withMsgs.length, totals.matches))} of ${n(totals.matches)} matches` },
       // Usage.messages_sent compared with Usage.matches
       { label: 'Messages sent per match', value: perMatch, note: `${n(totals.sent)} sent · ${n(totals.matches)} matches` },
       { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received` },
