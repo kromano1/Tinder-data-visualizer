@@ -559,36 +559,28 @@
     }
     const spanText = spanDays >= 730 ? `${(spanDays / 365.25).toFixed(1)} years` : spanDays >= 60 ? `${Math.round(spanDays / 30.44)} months` : `${spanDays} days`;
     const listsAll = data.conversations.some(c => !c.messages.length);
+    // Matches with no message from you in the export (unmessaged, plus any unmatched/deleted ones Tinder drops)
+    const noMsg = Math.max(0, total - withMsgs);
     const stats = [
       { label: 'Data covers', value: first ? `${fmtDate(first)} – ${fmtDate(last)}` : '–', note: first ? `${spanText} · ${n(activeDays)} active days` : '', small: true },
       created ? { label: 'Account created', value: fmtDate(created), note: 'from your profile' , small: true } : null,
       data.fileInfo ? { label: 'File', value: data.fileInfo.name, note: fmtBytes(data.fileInfo.size), small: true } : null,
       { label: 'Matches', value: n(total), note: 'all matches, from Usage' },
-      ...(listsAll ? [
-        { label: 'Matches in Messages', value: n(inFile), note: total ? `${pct(inFile, total)} of all matches` : 'entries in the Messages section' },
-        { label: 'Not in Messages', value: n(removed), note: total ? `${pct(removed, total)}: unmatched or deleted` : '' },
-        { label: 'Matches you messaged', value: n(withMsgs), note: inFile ? `${pct(withMsgs, inFile)} of matches in Messages` : '' },
-      ] : [
-        { label: 'Matches in Messages', value: n(inFile), note: total ? `${pct(inFile, total)} of all matches · you messaged each one` : 'you messaged each one' },
-        { label: 'Not in Messages', value: n(removed), note: total ? `${pct(removed, total)}: not messaged by you, unmatched or deleted` : '' },
-      ]),
+      { label: 'Matches you messaged', value: n(withMsgs), note: total ? `${pct(withMsgs, total)} of all matches` : '' },
+      { label: 'Matched but no message', value: n(noMsg), note: total ? `${pct(noMsg, total)} of all matches${removed > 0 ? ' · includes unmatched or deleted' : ''}` : '' },
       { label: 'Messages you sent', value: n(msgsInFile), note: `in Messages · Usage counts ${n(sum('sent'))}` },
       { label: 'Messages received', value: n(sum('received')), note: 'counted in Usage (texts aren\'t included)' },
       photos != null ? { label: 'Photos', value: n(photos), note: 'listed in the file' } : null,
       purchases != null ? { label: 'Purchases', value: n(purchases), note: 'subscriptions and add-ons' } : null,
     ].filter(Boolean);
     const sectionNames = ['Usage', 'Messages', 'User', ...Object.keys(secs)];
-    const note = !listsAll && total
-      ? `Usage counts ${n(total)} matches in all. Your Messages section only lists the ${n(inFile)} you've sent a message to that still exist. Tinder leaves out matches you haven't messaged (like new matches at the top of your Messages tab) and matches that were unmatched or deleted, so match counts on this page come from Usage.`
-      : total
-      ? (removed > 0
-        ? `Usage counts ${n(total)} matches in all, but the Messages section lists ${n(inFile)}. Tinder leaves a match out of Messages when either of you unmatches or an account is deleted, so match counts on this page come from Usage.`
-        : `All ${n(total)} matches counted in Usage are listed in the Messages section.`)
+    const note = total
+      ? `You've sent a message to ${n(withMsgs)} of your ${n(total)} matches. The other ${n(noMsg)} have no message from you in your export: matches you haven't written to yet` +
+        (removed > 0 || !listsAll ? ', plus any that were unmatched or deleted, since Tinder removes those from the Messages section.' : '.')
       : 'Usage has no matches.';
-    const labels = listsAll ? ['In Messages', 'Unmatched or deleted'] : ['In Messages (you messaged them)', 'Not messaged, unmatched or deleted'];
     return { total, inFile, removed, stats, sectionNames, note, listsAll,
-      bar: total ? [{ label: labels[0], value: Math.min(inFile, total), pct: Math.min(inFile, total) / total },
-        { label: labels[1], value: removed, pct: removed / total }] : [] };
+      bar: total ? [{ label: 'Matches you messaged', value: Math.min(withMsgs, total), pct: Math.min(withMsgs, total) / total },
+        { label: 'Matched but no message', value: noMsg, pct: noMsg / total }] : [] };
   }
 
   function renderExportOverview() {
