@@ -617,6 +617,20 @@
       return span;
     }));
     $('ovSections').replaceChildren(...ov.sectionNames.map(s => textEl('span', pretty(s), 'kv-chip')));
+    const rep = data.usageReport || [];
+    const tbl = $('usageCheck');
+    tbl.replaceChildren();
+    const head = document.createElement('tr');
+    for (const h of ['Field', 'Total', 'Days', 'First day', 'Last day', 'Unreadable entries']) head.append(textEl('th', h));
+    const thead = document.createElement('thead'); thead.append(head);
+    const tbody = document.createElement('tbody');
+    for (const r of rep) {
+      const tr = document.createElement('tr');
+      tr.append(textEl('td', r.key), textEl('td', n(r.total)), textEl('td', n(r.days)),
+        textEl('td', r.first ? fmtDate(r.first) : '–'), textEl('td', r.last ? fmtDate(r.last) : '–'), textEl('td', r.skipped ? n(r.skipped) : '0'));
+      tbody.append(tr);
+    }
+    tbl.append(thead, tbody);
   }
 
   function fmtBytes(b) {

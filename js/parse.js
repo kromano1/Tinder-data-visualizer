@@ -44,6 +44,26 @@
     return {};
   }
 
+  // Usage dates are normally "YYYY-MM-DD" or ISO timestamps; accept a few other shapes rather than dropping them.
+  function dayKey(k) {
+    const s = String(k).trim();
+    let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (m) return valid(m[1], m[2], m[3]);
+    m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);           // MM/DD/YYYY
+    if (m) return valid(m[3], m[1], m[2]);
+    if (/^\d{10}$|^\d{13}$/.test(s)) {                                  // Unix seconds / milliseconds
+      const d = new Date(s.length === 10 ? +s * 1000 : +s);
+      return isNaN(d) ? null : d.toISOString().slice(0, 10);
+    }
+    const t = Date.parse(s);
+    return isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
+  }
+  function valid(y, mo, d) {
+    const k = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const t = new Date(k + 'T00:00:00Z');
+    return !isNaN(t) && t.toISOString().slice(0, 10) === k ? k : null;
+  }
+
   function normalize(raw) {
     if (!raw || typeof raw !== 'object') throw new Error('Unrecognized file format.');
     const usage = raw.Usage || raw.usage;
@@ -52,13 +72,26 @@
     // Build a day-indexed map: { 'YYYY-MM-DD': { opens, likes, ... } }
     const days = {};
     const usedKeys = new Set();
+    // What the file contains, field by field, so people can check nothing was dropped
+    const usageReport = [];
+    const report = (key, series) => {
+      const r = { key, total: 0, days: 0, first: null, last: null, skipped: 0 };
+      for (const [date, val] of Object.entries(series)) {
+        const d = dayKey(date), n = Number(val);
+        if (!d || !isFinite(n)) { r.skipped++; continue; }
+        r.total += n; r.days++;
+        if (!r.first || d < r.first) r.first = d;
+        if (!r.last || d > r.last) r.last = d;
+      }
+      return r;
+    };
     for (const [metric, keys] of Object.entries(USAGE_KEYS)) {
-      for (const k of keys) if (usage[k] && typeof usage[k] === 'object') { usedKeys.add(k); break; }
+      for (const k of keys) if (usage[k] && typeof usage[k] === 'object') { usedKeys.add(k); usageReport.push(report(k, usage[k])); break; }
       const series = pickSeries(usage, keys);
       for (const [date, val] of Object.entries(series)) {
-        const d = String(date).slice(0, 10);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
-        const n = Number(val) || 0;
+        const d = dayKey(date);
+        const n = Number(val);
+        if (!d || !isFinite(n)) continue;
         (days[d] ||= blankDay())[metric] += n;
       }
     }
@@ -69,10 +102,10 @@
       if (usedKeys.has(k) || !series || typeof series !== 'object' || Array.isArray(series)) continue;
       const clean = {};
       for (const [date, val] of Object.entries(series)) {
-        const d = String(date).slice(0, 10);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && isFinite(Number(val))) clean[d] = (clean[d] || 0) + Number(val);
+        const d = dayKey(date);
+        if (d && val !== '' && val !== null && isFinite(Number(val))) clean[d] = (clean[d] || 0) + Number(val);
       }
-      if (Object.keys(clean).length) extras[k] = clean;
+      if (Object.keys(clean).length) { extras[k] = clean; usageReport.push(report(k, series)); }
     }
 
     const conversations = (raw.Messages || raw.messages || []).map(m => {
@@ -92,7 +125,7 @@
     for (const [k, v] of Object.entries(raw)) {
       if (!/^(usage|messages|user)$/i.test(k)) sections[k] = v;
     }
-    return { days, extras, conversations, user, sections };
+    return { days, extras, conversations, user, sections, usageReport };
   }
 
   function blankDay() {
