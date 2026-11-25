@@ -12,7 +12,7 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - Your most common opening words, and your busiest swiping days
 - Percentage labels on every bar and point (rates, or each point's share of the total), also in tooltips and exports
 - Super Likes per month, plus a chart for any other activity series Tinder includes in `Usage`
-- An "About this export" summary: date range covered, all-time matches vs matches still in the file
+- An "About this export" summary: date range covered, all matches (Usage) vs matches listed in the Messages section
   (Tinder drops unmatched/deleted matches from the Messages section), conversations, messages, photos, purchases
 - Headline stats as big percentages with the real numbers underneath, plus jump links to every section
 - "Your story": plain-English highlight cards, a full-screen story mode (tap, swipe or arrow keys),
@@ -20,8 +20,7 @@ visitor's browser: the export file is read locally with JavaScript and is never 
 - A light / dark / automatic theme switch
 - A searchable browser of every conversation and message in the export
 - Every other section of the file (profile, Spotify, purchases, photos, campaigns, …) shown as-is
-- A matches switch: "Still in export" (default; counts matches still listed in the file and shows the entire export)
-  or "All-time log" (counts every logged match and enables the period filter)
+- Match rate = all matches (from the Usage section) ÷ likes sent
 - A period filter: entire export, last 30 / 90 days, last 12 months, any year, or a custom date range
 - Section links in the header that highlight the section on screen
 - A monthly data table

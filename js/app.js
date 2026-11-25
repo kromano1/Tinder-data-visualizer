@@ -46,14 +46,9 @@
 
   let data = null;
   let range = 'all';
-  // How matches are counted: 'export' = matches still listed in the file (default), 'log' = all-time activity log
-  const MODE_KEY = 'swipestats.matchMode';
-  let matchMode = 'export';
-  try { matchMode = localStorage.getItem(MODE_KEY) === 'log' ? 'log' : 'export'; } catch (e) { /* storage unavailable */ }
-  // Some exports list every current match (unmessaged ones have an empty message list); others only list
-  // matches you sent a message in. Only the first kind can give a "matches still in your export" count.
+  // Some exports list every match in the Messages section (unmessaged ones have an empty message list);
+  // others only list matches you sent a message in.
   const listsAllMatches = () => !!data && data.conversations.some(c => !c.messages.length);
-  const exportMode = () => matchMode === 'export' && listsAllMatches();
   let view = null;
 
   // ---------- Upload ----------
@@ -82,23 +77,6 @@
   $('rangeSelect').addEventListener('change', e => {
     range = e.target.value;
     $('customRange').hidden = range !== 'custom';
-    render();
-  });
-  function applyMatchModeUI() {
-    const hasFile = listsAllMatches();
-    $('matchMode').hidden = !hasFile;
-    const ex = exportMode();
-    for (const b of document.querySelectorAll('#matchMode button')) b.setAttribute('aria-pressed', String(b.dataset.mode === (ex ? 'export' : 'log')));
-    $('modeNote').hidden = !ex;
-    $('periodGroup').hidden = ex;
-    if (ex) { range = 'all'; $('rangeSelect').value = 'all'; $('customRange').hidden = true; }
-  }
-  $('matchMode').addEventListener('click', e => {
-    const b = e.target.closest('button[data-mode]');
-    if (!b || !data || b.dataset.mode === matchMode) return;
-    matchMode = b.dataset.mode;
-    try { localStorage.setItem(MODE_KEY, matchMode); } catch (err) { /* storage unavailable */ }
-    applyMatchModeUI();
     render();
   });
   for (const id of ['rangeFrom', 'rangeTo']) {
@@ -147,7 +125,6 @@
     f.value = dates[0]; t.value = dates[dates.length - 1];
     $('customRange').hidden = true;
     $('topNav').hidden = false;
-    applyMatchModeUI();
 
     $('uploadView').hidden = true;
     $('dashView').hidden = false;
@@ -238,29 +215,20 @@
     const matchDays = days.filter(([, v]) => v.matches > 0).length;
     const msgTotal = totals.sent + totals.received;
     const questionsN = withMsgs.filter(c => c.messages[0].text.includes('?')).length;
-    const listsAll = listsAllMatches();
-    const allTime = range === 'all' && exportOv && exportOv.total && listsAll;
-    // The match count every match-based percentage uses
-    const ex = exportMode();
-    const M = ex ? data.conversations.length : totals.matches;
-    const mWord = ex ? 'matches still in your export' : 'matches';
-    // Matches in the file have no date, so for a period compare against the matches made in that period
-    // If the file leaves out unmessaged matches, compare against the activity log's match count instead
-    const msgBase = range === 'all' && listsAll ? convos.length : Math.max(totals.matches, withMsgs.length);
+    // Every match-based figure uses all matches from the Usage section
+    const M = totals.matches;
+    const perMatch = totals.matches ? (totals.sent / totals.matches).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '–';
     const headline = [
-      { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} ${ex ? 'matches in your export' : 'matches'} from ${n(totals.likes)} likes` },
+      { label: 'Match rate', value: pct(M, totals.likes), note: `${n(M)} matches from ${n(totals.likes)} likes` },
       { label: 'Like rate', value: pct(totals.likes, swipes), note: `${n(totals.likes)} of ${n(swipes)} swipes` },
-      { label: 'Matches you messaged', value: (listsAll ? '' : '≥ ') + pct(withMsgs.length, msgBase), note: `${listsAll ? '' : 'at least '}${n(withMsgs.length)} of ${n(msgBase)} matches` },
-      allTime
-        ? { label: 'Matches still in your export', value: pct(exportOv.inFile, exportOv.total), note: `${n(exportOv.inFile)} of ${n(exportOv.total)} all-time matches` }
-        : { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received` },
+      // Usage.messages_sent compared with Usage.matches
+      { label: 'Messages sent per match', value: perMatch, note: `${n(totals.sent)} messages sent · ${n(totals.matches)} matches` },
+      { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received` },
     ];
     const kpis = [
-      allTime
-        ? { label: 'Messages sent by you', value: pct(totals.sent, msgTotal), note: `${n(totals.sent)} sent · ${n(totals.received)} received`, icon: 'chat', c: 'c2' }
-        : { label: 'Openers with a question', value: pct(questionsN, withMsgs.length), note: `${n(questionsN)} of ${n(withMsgs.length)} first messages`, icon: 'quote', c: 'c2' },
+      { label: 'Openers with a question', value: pct(questionsN, withMsgs.length), note: `${n(questionsN)} of ${n(withMsgs.length)} first messages`, icon: 'quote', c: 'c2' },
       { label: 'Active days', value: pct(activeDays, spanDays), note: `${n(activeDays)} of ${n(spanDays)} days · ${n(totals.opens)} app opens`, icon: 'calendar', c: 'c1' },
-      { label: 'Days with a match', value: pct(matchDays, activeDays), note: `${n(matchDays)} of ${n(activeDays)} active days${ex ? ' (activity log)' : ''}`, icon: 'heart', c: 'c3' },
+      { label: 'Days with a match', value: pct(matchDays, activeDays), note: `${n(matchDays)} of ${n(activeDays)} active days`, icon: 'heart', c: 'c3' },
       { label: 'Super Likes', value: pct(totals.superlikes, totals.likes), note: `${n(totals.superlikes)} of your ${n(totals.likes)} likes`, icon: 'star', c: 'c1' },
     ];
 
@@ -328,15 +296,14 @@
     const hourName = h => h === 0 ? '12 am' : h < 12 ? `${h} am` : h === 12 ? '12 pm' : `${h - 12} pm`;
     const mMatches = mVals.map(v => v.matches);
     const story = [];
-    if (M && totals.likes) story.push({ icon: 'heart', c: 'c2', big: `1 in ${n(Math.max(1, Math.round(totals.likes / M)))}`, text: ex ? 'of your likes became a match that\'s still in your export' : 'of your likes turned into a match' });
+    if (M && totals.likes) story.push({ icon: 'heart', c: 'c2', big: `1 in ${n(Math.max(1, Math.round(totals.likes / M)))}`, text: 'of your likes turned into a match' });
     if (swipes) story.push({ icon: 'swipe', c: 'c1', big: pct(totals.likes, swipes), text: `of profiles got a right swipe from you. You passed on the other ${pct(totals.passes, swipes)}.` });
     const wdTop = peakIdx(wdAvg);
     if (wdTop >= 0) story.push({ icon: 'calendar', c: 'c3', big: FULL_DAYS[wdTop] + 's', text: `are your busiest swiping days, with ${pct(wdAvg[wdTop], wdAvg.reduce((a, b) => a + b, 0))} of a typical week's swipes` });
     const bestM = peakIdx(mMatches);
-    if (bestM >= 0) story.push({ icon: 'trophy', c: 'c2', big: fullM(bestM), text: `was your best month: ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of ${ex ? 'all logged matches' : 'the total'}` });
-    if (msgBase) story.push(listsAll
-      ? { icon: 'chat', c: 'c1', big: pct(withMsgs.length, msgBase), text: `of your matches got a message from you. ${n(msgBase - withMsgs.length)} never heard from you.` }
-      : { icon: 'chat', c: 'c1', big: n(withMsgs.length), text: `conversations you started are still in your export, out of ${n(msgBase)} matches${range === 'all' ? '' : ' in this period'}` });
+    if (bestM >= 0) story.push({ icon: 'trophy', c: 'c2', big: fullM(bestM), text: `was your best month: ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total` });
+    if (totals.matches && totals.sent) story.push({ icon: 'chat', c: 'c1', big: perMatch,
+      text: `messages sent per match: ${n(totals.sent)} messages for ${n(totals.matches)} matches` });
     const hTop = peakIdx(hours);
     if (hTop >= 0) story.push({ icon: 'clock', c: 'c3', big: hourName(hTop), text: `is your favorite time to text: ${pct(hours[hTop], sentMsgs.length)} of your messages go out in that hour` });
     const busiest = days.reduce((b, d) => (d[1].likes + d[1].passes) > (b ? b[1].likes + b[1].passes : 0) ? d : b, null);
@@ -354,9 +321,7 @@
     { const lo = lowIdx(wdAvg.map(v => v || null)); tk.weekday = wdTop >= 0 ? `${FULL_DAYS[wdTop]} is your busiest day${lo >= 0 && lo !== wdTop ? ` and ${FULL_DAYS[lo]} the quietest` : ''}.` : 'No swipes in this period.'; }
     { const arr = mVals.map(v => v.superlikes), i = peakIdx(arr); tk.super = i >= 0 ? `You used ${n(totals.superlikes)} Super Likes, the most in ${fullM(i)} (${n(arr[i])}).` : 'You didn\'t use any Super Likes in this period.'; }
     tk.matches = bestM >= 0 ? `Your best month was ${fullM(bestM)} with ${n(mMatches[bestM])} matches, ${pct(mMatches[bestM], totals.matches)} of the total.` : 'No matches in this period.';
-    if (ex && totals.matches > M) tk.matches += ` Monthly counts come from the activity log, which still counts the ${n(totals.matches - M)} matches later removed from your export.`;
     { const i = peakIdx(matchRate), a = avgOf(matchRate); tk.matchRate = i >= 0 ? `On average ${Charts.fmtPct(a)} of your likes matched each month. ${fullM(i)} was your luckiest at ${Charts.fmtPct(matchRate[i])}.` : 'No likes in this period.'; }
-    if (ex && i0(matchRate)) tk.matchRate += ` These monthly rates use the activity log; counting only matches still in your export, your overall rate is ${pct(M, totals.likes)}.`;
     { const i = peakIdx(mVals.map(v => v.sent + v.received)); tk.messages = i >= 0 ? `You sent ${n(totals.sent)} messages and received ${n(totals.received)}. ${fullM(i)} was your chattiest month.` : 'No messages in this period.'; }
     { const night = hours.slice(21).reduce((a, b) => a + b, 0) + hours.slice(0, 3).reduce((a, b) => a + b, 0); tk.hour = hTop >= 0 ? `You text most around ${hourName(hTop)}. ${pct(night, sentMsgs.length)} of your messages are sent between 9 pm and 3 am.` : 'No messages in this period.'; }
     { const none = convoCounts[0], longC = convoCounts.slice(4).reduce((a, b) => a + b, 0), tot = convoCounts.reduce((a, b) => a + b, 0); tk.convo = tot ? `${pct(none, tot)} of matches never got a message, and ${pct(longC, tot)} of conversations went past 10 messages.` : 'No matches in this period.'; }
@@ -509,12 +474,12 @@
     const longest = all.reduce((m, c) => Math.max(m, c.messages.length), 0);
     const ov = computeExportOverview();
     $('convoSummary').textContent = all.length && !ov.listsAll
-      ? `${n(all.length)} conversations in your export, each with at least one message from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages. ` +
-        `Tinder's export leaves out matches you haven't messaged and matches that were unmatched or deleted. Your activity log counts ${n(ov.total)} matches all-time. ` +
+      ? `${n(all.length)} conversations in the Messages section, each with at least one message from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages. ` +
+        `Tinder's Messages section leaves out matches you haven't messaged and matches that were unmatched or deleted. Usage counts ${n(ov.total)} matches in all. ` +
         `The export only includes messages you sent, so it can't show whether the other person wrote to you.`
       : all.length
-      ? `${n(all.length)} matches still in your export · ${n(withMsgs)} (${pct(withMsgs, all.length)}) with messages from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages.` +
-        (ov.removed > 0 ? ` Your activity log counts ${n(ov.total)} matches all-time; Tinder leaves out the ${n(ov.removed)} that were unmatched or whose accounts were deleted.` : '')
+      ? `${n(all.length)} matches in the Messages section · ${n(withMsgs)} (${pct(withMsgs, all.length)}) with messages from you · ${n(msgs)} messages sent · longest: ${n(longest)} messages.` +
+        (ov.removed > 0 ? ` Usage counts ${n(ov.total)} matches in all; the other ${n(ov.removed)} were unmatched or their accounts were deleted, so Tinder leaves them out of Messages.` : '')
       : 'Your export has no conversations.';
     drawConvoList();
   }
@@ -598,29 +563,29 @@
       { label: 'Data covers', value: first ? `${fmtDate(first)} – ${fmtDate(last)}` : '–', note: first ? `${spanText} · ${n(activeDays)} active days` : '', small: true },
       created ? { label: 'Account created', value: fmtDate(created), note: 'from your profile' , small: true } : null,
       data.fileInfo ? { label: 'File', value: data.fileInfo.name, note: fmtBytes(data.fileInfo.size), small: true } : null,
-      { label: 'Matches all-time', value: n(total), note: 'from your daily activity log' },
+      { label: 'Matches', value: n(total), note: 'all matches, from Usage' },
       ...(listsAll ? [
-        { label: 'Still in your export', value: n(inFile), note: total ? `${pct(inFile, total)} of all-time matches` : 'match entries in the file' },
-        { label: 'Unmatched or removed', value: n(removed), note: total ? `${pct(removed, total)} of all-time matches` : '' },
-        { label: 'Conversations you started', value: n(withMsgs), note: inFile ? `${pct(withMsgs, inFile)} of matches still in the file` : '' },
+        { label: 'Matches in Messages', value: n(inFile), note: total ? `${pct(inFile, total)} of all matches` : 'entries in the Messages section' },
+        { label: 'Not in Messages', value: n(removed), note: total ? `${pct(removed, total)}: unmatched or deleted` : '' },
+        { label: 'Matches you messaged', value: n(withMsgs), note: inFile ? `${pct(withMsgs, inFile)} of matches in Messages` : '' },
       ] : [
-        { label: 'Conversations in the file', value: n(inFile), note: total ? `${pct(inFile, total)} of all-time matches · you messaged each one` : 'you messaged each one' },
-        { label: 'Not in the file', value: n(removed), note: total ? `${pct(removed, total)}: not messaged by you, unmatched or deleted` : '' },
+        { label: 'Matches in Messages', value: n(inFile), note: total ? `${pct(inFile, total)} of all matches · you messaged each one` : 'you messaged each one' },
+        { label: 'Not in Messages', value: n(removed), note: total ? `${pct(removed, total)}: not messaged by you, unmatched or deleted` : '' },
       ]),
-      { label: 'Messages in the file', value: n(msgsInFile), note: `${n(sum('sent'))} sent in your activity log` },
-      { label: 'Messages received', value: n(sum('received')), note: 'from your activity log' },
+      { label: 'Messages you sent', value: n(msgsInFile), note: `in Messages · Usage counts ${n(sum('sent'))}` },
+      { label: 'Messages received', value: n(sum('received')), note: 'counted in Usage (texts aren\'t included)' },
       photos != null ? { label: 'Photos', value: n(photos), note: 'listed in the file' } : null,
       purchases != null ? { label: 'Purchases', value: n(purchases), note: 'subscriptions and add-ons' } : null,
     ].filter(Boolean);
     const sectionNames = ['Usage', 'Messages', 'User', ...Object.keys(secs)];
     const note = !listsAll && total
-      ? `Your activity log recorded ${n(total)} matches. Your file only lists the ${n(inFile)} conversations you've sent a message in that still exist. Tinder leaves out matches you haven't messaged (like new matches at the top of your Messages tab) and matches that were unmatched or deleted, so the file can't tell how many matches you have right now. That's why match counts here come from your activity log.`
+      ? `Usage counts ${n(total)} matches in all. Your Messages section only lists the ${n(inFile)} you've sent a message to that still exist. Tinder leaves out matches you haven't messaged (like new matches at the top of your Messages tab) and matches that were unmatched or deleted, so match counts on this page come from Usage.`
       : total
       ? (removed > 0
-        ? `Your activity log recorded ${n(total)} matches, but only ${n(inFile)} are still listed in the file. Tinder removes a match from the export when either of you unmatches or an account is deleted, so the Overview count is higher.`
-        : `All ${n(total)} matches from your activity log are still listed in the file.`)
-      : 'Your activity log has no matches.';
-    const labels = listsAll ? ['Still in your export', 'Unmatched or removed'] : ['Messaged by you, still in the file', 'Not messaged, unmatched or deleted'];
+        ? `Usage counts ${n(total)} matches in all, but the Messages section lists ${n(inFile)}. Tinder leaves a match out of Messages when either of you unmatches or an account is deleted, so match counts on this page come from Usage.`
+        : `All ${n(total)} matches counted in Usage are listed in the Messages section.`)
+      : 'Usage has no matches.';
+    const labels = listsAll ? ['In Messages', 'Unmatched or deleted'] : ['In Messages (you messaged them)', 'Not messaged, unmatched or deleted'];
     return { total, inFile, removed, stats, sectionNames, note, listsAll,
       bar: total ? [{ label: labels[0], value: Math.min(inFile, total), pct: Math.min(inFile, total) / total },
         { label: labels[1], value: removed, pct: removed / total }] : [] };
