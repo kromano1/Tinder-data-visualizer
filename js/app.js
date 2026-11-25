@@ -643,7 +643,31 @@
   }
 
   const MAX_ITEMS = 300;
+  // Turn Tinder's small nested objects into plain text so nested data doesn't drift to the right:
+  // {name, displayed} -> "Chef", {name, choices} -> "Pets: Dog", {title:{name}, company:{name}} -> "Title: Chef · Company: …"
+  function simplify(v, depth) {
+    if (depth < 1 || !v || typeof v !== 'object' || Array.isArray(v)) return v;
+    const keys = Object.keys(v);
+    if (keys.some(k => SENSITIVE.test(k))) return v;
+    if ('name' in v && (v.name == null || typeof v.name !== 'object')) {
+      if (Array.isArray(v.choices)) {
+        const ch = v.choices.map(c => c && typeof c === 'object' ? (c.name ?? '') : c).filter(c => c !== '' && c != null);
+        return `${v.name}: ${ch.join(', ') || '–'}`;
+      }
+      if (keys.every(k => /^(name|displayed|id|visibility|region|type)$/.test(k))) {
+        const extra = v.region ? `, ${v.region}` : '';
+        return `${v.name}${extra}${v.displayed === false ? ' (not shown on profile)' : ''}`;
+      }
+    }
+    const parts = keys.map(k => [k, simplify(v[k], depth + 1)]);
+    if (keys.length <= 4 && parts.every(([, x]) => x == null || typeof x !== 'object')) {
+      return parts.filter(([, x]) => x != null && x !== '').map(([k, x]) => `${pretty(k)}: ${prettyScalar(x)}`).join(' · ') || '–';
+    }
+    return v;
+  }
+
   function renderValue(v, depth) {
+    v = simplify(v, depth);
     if (v == null || v === '') return textEl('span', '–', 'kv-empty');
     if (typeof v !== 'object') return textEl('span', prettyScalar(v), 'kv-val');
     if (depth > 6) return textEl('span', JSON.stringify(v).slice(0, 500), 'kv-val');
@@ -667,6 +691,7 @@
       const dd = document.createElement('dd');
       // 'name' is only personal at the top level of a section (nested names are cities, jobs, artists…)
       if ((SENSITIVE.test(k) || (depth === 0 && /^name$/i.test(k))) && x != null && x !== '') dd.append(hiddenValue(x, depth));
+      else if (/^age_filter_max$/i.test(k) && +x >= 100) dd.append(textEl('span', `No upper limit (stored as ${n(x)})`, 'kv-val'));
       else dd.append(renderValue(x, depth + 1));
       dl.append(dd);
     }
